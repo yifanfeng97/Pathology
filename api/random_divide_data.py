@@ -1,4 +1,4 @@
 import sys
 sys.path.append('../')
 
-import get_config
+from get_config import config
