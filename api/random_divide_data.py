@@ -10,7 +10,7 @@ import json
 
 img_type = ['*.svs', '*.kfb']
 
-from get_config import config
+from config_fun import config
 
 def _remove_corrupted_files(files):
     corrent_files = []
