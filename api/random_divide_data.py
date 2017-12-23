@@ -1,8 +1,8 @@
 import sys
-sys.path.append('../')
+# sys.path.append('../')
 import glob
 import os
-import all_slides
+import slide_fun
 import openslide
 import random
 import numpy as np
@@ -17,7 +17,7 @@ def _remove_corrupted_files(files):
     for item in files:
         data_file = item[0]
         try:
-            data = all_slides.AllSlide(data_file)
+            data = slide_fun.AllSlide(data_file)
             level = data.level_count -1
             level_size = data.level_dimensions[level]
             while 0 in level_size:
@@ -72,7 +72,7 @@ def random_divide_data():
 
     tumor_data_to_masks = {}
     for anno_file in tumor_anno_files:
-        data_file = all_slides.get_mask_info(os.path.basename(anno_file))[0]
+        data_file = slide_fun.get_mask_info(os.path.basename(anno_file))[0]
         if data_file not in tumor_data_to_masks:
             tumor_data_to_masks[data_file] = [anno_file]
         else:

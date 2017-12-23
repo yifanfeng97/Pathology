@@ -1,5 +1,8 @@
-import all_slides
+import slide_fun
+import config_fun
 
-def generate_patch(save_patch = True):
+def generate_patch(auto_save_patch = True):
     pass
+
+
 
