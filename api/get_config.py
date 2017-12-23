@@ -1,10 +1,10 @@
 import sys
 import os
-sys.path.append('../')
+# sys.path.append('../')
 import ConfigParser
 
 class config():
-    def __init__(self, cfg_file = '../config/path.cfg'):
+    def __init__(self, cfg_file = 'config/path.cfg'):
 
         cfg = ConfigParser.SafeConfigParser()
         cfg.read(cfg_file)
@@ -19,14 +19,16 @@ class config():
         self.img_ext = cfg.get('DEFAULT', 'img_ext')
         ## preprocess
         ### folder
-        self.split_folder = cfg.get('DEFAULT', 'split_folder')
+        self.split_folder = cfg.get('PREPROCESS', 'split_folder')
         ### number
-        self.test_frac = cfg.getfloat('DEFAULT', 'test_frac')
-        self.val_normal = cfg.getint('DEFAULT', 'val_normal')
-        self.val_tumor = cfg.getint('DEFAULT', 'val_tumor')
+        self.test_frac = cfg.getfloat('PREPROCESS', 'test_frac')
+        self.val_normal = cfg.getint('PREPROCESS', 'val_normal')
+        self.val_tumor = cfg.getint('PREPROCESS', 'val_tumor')
         ### files
-        self.split_file = cfg.get('DEFAULT', 'split_file')
-        self.test_file = cfg.get('DEFAULT', 'test_file')
+        self.split_file = cfg.get('PREPROCESS', 'split_file')
+        self.test_file = cfg.get('PREPROCESS', 'test_file')
+        ### others
+        self.redividing = cfg.getboolean('PREPROCESS', 'redividing')
         # self. = cfg.get('DEFAULT', '')
         # self. = cfg.get('DEFAULT', '')
         # self. = cfg.get('DEFAULT', '')

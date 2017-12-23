@@ -96,8 +96,8 @@ def random_divide_data():
     tumor_data = _remove_corrupted_files(tumor_data)
     normal_data = _remove_corrupted_files(normal_data)
 
-    print('finally\n tumor files %d', len(tumor_data))
-    print('normal files %d', len(normal_data))
+    print('finally\ntumor files %d'%len(tumor_data))
+    print('normal files %d'%len(normal_data))
 
     # split data
     split_data = []
@@ -124,7 +124,7 @@ def random_divide_data():
     with open(cfg.split_file, 'w') as f:
         json.dump(split_data, f)
 
-    print('All split files information will be written into', cfg.split_file)
+    print('All split files information will be written into' + cfg.split_file)
 
     with open(cfg.test_file, 'w') as f:
         for item in test_tumor_files:
