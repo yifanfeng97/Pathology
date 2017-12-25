@@ -1,19 +1,19 @@
 import slide_fun
 import config_fun
 import json
-import extract_path_fun
+import extract_patch_fun
 import os
 from tqdm import tqdm
 import numpy as np
 
-def _prepare_patch(data, auto_save_patch = True):
+def _prepare_data(data, auto_save_patch = True):
     patches = []
     for idx, item in enumerate(tqdm(data)):
         patch = []
         if 'tumor' in item['info']:
-            patch = extract_path_fun.extract(item, 'pos', auto_save_patch = auto_save_patch)
+            patch = extract_patch_fun.extract(item, 'pos', auto_save_patch = auto_save_patch)
         else:
-            patch = extract_path_fun.extract(item, 'neg', auto_save_patch = auto_save_patch)
+            patch = extract_patch_fun.extract(item, 'neg', auto_save_patch = auto_save_patch)
         patches.append({'data': item['data'][0],
                         'info': item['info'], 'patch':patch})
         print('get patches from %s, pos:%d, neg:%d\n'%
@@ -33,8 +33,8 @@ def generate_patch(auto_save_patch = True):
     test_data  = filter(lambda item: item['info'] == 'test_tumor' or
                                     item['info'] == 'test_normal', split_data)
 
-    train_patch = _prepare_patch(train_data, auto_save_patch = auto_save_patch)
-    val_patch = _prepare_patch(val_data, auto_save_patch = auto_save_patch)
+    train_patch = _prepare_data(train_data, auto_save_patch = auto_save_patch)
+    val_patch = _prepare_data(val_data, auto_save_patch = auto_save_patch)
 
     np.save(cfg.patch_coor_file, train_patch + val_patch)
     print('save all patches into file %s'%cfg.patch_coor_file)
