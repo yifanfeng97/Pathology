@@ -20,6 +20,7 @@ class config():
         ## preprocess
         ### folder
         self.split_folder = cfg.get('PREPROCESS', 'split_folder')
+        self.patch_coor_folder = cfg.get('PREPROCESS', 'patch_coor_folder')
         ### number
         self.test_frac = cfg.getfloat('PREPROCESS', 'test_frac')
         self.val_normal = cfg.getint('PREPROCESS', 'val_normal')
@@ -27,6 +28,7 @@ class config():
         ### files
         self.split_file = cfg.get('PREPROCESS', 'split_file')
         self.test_file = cfg.get('PREPROCESS', 'test_file')
+        self.patch_coor_file = cfg.get('PREPROCESS', 'patch_coor_file')
         ### others
         self.redividing = cfg.getboolean('PREPROCESS', 'redividing')
         # self. = cfg.get('DEFAULT', '')
@@ -47,6 +49,7 @@ class config():
         self.check_dir(self.tumor_anno_folder)
         self.check_dir(self.result_folder)
         self.check_dir(self.split_folder)
+        self.check_dir(self.patch_coor_folder)
         # self.check_dir()
         # self.check_dir()
 

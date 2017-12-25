@@ -4,6 +4,7 @@ import json
 import extract_path_fun
 import os
 from tqdm import tqdm
+import numpy as np
 
 def _prepare_patch(data, auto_save_patch = True):
     patches = []
@@ -35,4 +36,5 @@ def generate_patch(auto_save_patch = True):
     train_patch = _prepare_patch(train_data, auto_save_patch = auto_save_patch)
     val_patch = _prepare_patch(val_data, auto_save_patch = auto_save_patch)
 
-
+    np.save(cfg.patch_coor_file, train_patch + val_patch)
+    print('save all patches into file %s'%cfg.patch_coor_file)
