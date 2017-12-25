@@ -1,6 +1,7 @@
 import slide_fun
 import config_fun
 
+
 class single_img_process():
     def __init__(self, data, type, auto_save_patch = True):
         self._cfg = config_fun.config()
@@ -19,6 +20,34 @@ class single_img_process():
             self._img.level_dimensions[level][1] < 2048:
             level -= 1
         return level
+
+    def _threshold_downsample_lvl(self, lvl_img):
+        """Generates thresholded overview image.
+
+        Args:
+            wsi: An openslide image instance.
+
+        Returns:
+            A 2D numpy array of binary image
+        """
+
+        # calculate the overview level size and retrieve the image
+        downsample_img = lvl_img.convert('HSV')
+        downsample_img = np.array(downsample_img)
+
+        # dilate image and then threshold the image
+        schannel = downsample_img[:, :, 1]
+        schannel = dilation(schannel, star(3))
+        schannel = ndimage.gaussian_filter(schannel, sigma=(5, 5), order=0)
+        threshold_global = threshold_otsu(schannel)
+
+        schannel[schannel > threshold_global] = 255
+        schannel[schannel <= threshold_global] = 0
+
+        # import scipy.misc   # check the result
+        # scipy.misc.imsave('outfile.jpg', schannel)
+
+        return schannel
 
     def _generate_mask(self):
         self._ov_mask = None
