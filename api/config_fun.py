@@ -25,6 +25,10 @@ class config():
         self.test_frac = cfg.getfloat('PREPROCESS', 'test_frac')
         self.val_normal = cfg.getint('PREPROCESS', 'val_normal')
         self.val_tumor = cfg.getint('PREPROCESS', 'val_tumor')
+        self.max_frac = cfg.getint('PREPROCESS', 'max_frac')
+        self.min_frac = cfg.getint('PREPROCESS', 'min_frac')
+        self.patch_size = cfg.getint('PREPROCESS', 'patch_size')
+
         ### files
         self.split_file = cfg.get('PREPROCESS', 'split_file')
         self.test_file = cfg.get('PREPROCESS', 'test_file')

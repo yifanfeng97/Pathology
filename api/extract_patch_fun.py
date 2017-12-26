@@ -24,12 +24,13 @@ class single_img_process():
 
         self._img = slide_fun.AllSlide(self._file_name)
         self._max_mask = None
-        self._max_mask_size = self._img.level_dimensions[0]
+        self._max_mask_size = np.ceil(self._img.level_dimensions[0]/self._cfg.max_frac)
+        self._max_mask_level = None
 
     def _get_level(self, size):
         level = self._img.level_count -1
-        while self._img.level_dimensions[level][0] < size and \
-            self._img.level_dimensions[level][1] < size:
+        while self._img.level_dimensions[level][0] < size[0] and \
+            self._img.level_dimensions[level][1] < size[0]:
             level -= 1
         return level
 
@@ -62,10 +63,17 @@ class single_img_process():
         return schannel
 
     def _generate_mask(self):
-        self._min_mask = None
-        self._min_mask_size = self._get_level(2048)
 
-        self._max_mask = self._threshold_downsample_lvl()
+        # init mask without background
+        self._min_mask = None
+        self._min_mask_size = self._get_level((2048, 2048))
+
+        self._max_mask_level = self._get_level(self._max_mask_size)
+        self._max_mask = self._img.read_region((0, 0), self._max_mask_level,
+                                      self._img.level_dimensions[self._max_mask_level])
+        self._max_mask = self._max_mask.resize(self._max_mask_size)
+        self._max_mask = self._threshold_downsample_lvl(self._max_mask)
+
 
 
     def _save_random_mask_and_patch(self):
