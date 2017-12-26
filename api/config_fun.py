@@ -35,6 +35,7 @@ class config():
         self.patch_coor_file = cfg.get('PREPROCESS', 'patch_coor_file')
         ### others
         self.redividing = cfg.getboolean('PREPROCESS', 'redividing')
+        self.vis_ov_mask = cfg.getboolean('PREPROCESS', 'vis_ov_mask')
         # self. = cfg.get('DEFAULT', '')
         # self. = cfg.get('DEFAULT', '')
         # self. = cfg.get('DEFAULT', '')
