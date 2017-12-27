@@ -269,7 +269,7 @@ class single_img_process():
                         if self._is_bg(origin):
                             continue
                     patches['pos'].append(origin)
-                    self._save_random_patch(origin, 'pos')
+                    self._save_random_patch(origin)
                     cnt+=1
 
             else:
@@ -278,7 +278,7 @@ class single_img_process():
                         if self._is_bg(origin):
                             continue
                     patches['neg'].append(origin)
-                    self._save_random_patch(origin, 'neg')
+                    self._save_random_patch(origin)
                     cnt+=1
         if self._auto_save_patch:
             self._save_patches(patches)
