@@ -20,12 +20,13 @@ TUMOR_COLOR = [255, 0, 0]
 
 
 class single_img_process():
-    def __init__(self, data, type, auto_save_patch = True):
+    def __init__(self, data, file_type, patch_type, auto_save_patch = True):
         self._cfg = config_fun.config()
         self._file_name = data['data'][0]
         self._mask_files = data['data'][1]
         self._auto_save_patch = auto_save_patch
-        self._type = type
+        self._file_type = file_type
+        self._patch_type = patch_type
 
         self._img = slide_fun.AllSlide(self._file_name)
         self._max_mask = None
@@ -185,7 +186,7 @@ class single_img_process():
             img.close()
             return False
 
-    def _save_random_patch(self, origin, f_type):
+    def _save_random_patch(self, origin):
         if random.random()>self._cfg.vis_patch_prob:
             return
         img = self._img.read_region(origin, 0, (self._cfg.patch_size, self._cfg.patch_size))
@@ -199,7 +200,7 @@ class single_img_process():
         mask = np.asarray(mask)
         img_mask = self._fusion_mask_img(img, mask)
 
-        if f_type == 'pos':
+        if self._patch_type == 'pos':
             img_mask.save(os.path.join(self._cfg.vis_pos_patch_folder,
                                   os.path.basename(self._file_name).split('.')[0]
                                   + '_%d_%d' % (origin[0], origin[1]) + self._cfg.img_ext))
@@ -222,8 +223,19 @@ class single_img_process():
             if cnt >= self._cfg.patch_num_in_train:
                 break
             img = self._img.read_region(patch, 0, self._cfg.patch_size)
-            img.save(os.path.join(self._cfg.patch_save_folder,
-                                  os.path.basename(self._file_name) + '_%d_%d'%patch + self._cfg.img_ext))
+            folder_pre = None
+            if self._file_type == 'train':
+                folder_pre = os.path.join(self._cfg.patch_save_folder, 'train')
+            else:
+                folder_pre = os.path.join(self._cfg.patch_save_folder, 'val')
+            if self._patch_type == 'pos':
+                folder_pre = os.path.join(folder_pre, 'pos')
+            else:
+                folder_pre = os.path.join(folder_pre, 'neg')
+
+            config_fun.config.check_dir(folder_pre)
+            img.save(os.path.join(folder_pre, os.path.basename(self._file_name)
+                                  + '_%d_%d' % patch + self._cfg.img_ext))
             img.close()
             cnt +=1
 
@@ -252,7 +264,7 @@ class single_img_process():
             W_min = int(np.ceil(W / 4))
             W_max = int(np.ceil(W / 4 * 3))
             if np.count_nonzero(min_patch[H_min:H_max, W_min:W_max] == TUMOR)>0:
-                if self._type == 'pos':
+                if self._patch_type == 'pos':
                     if do_bg_filter:
                         if self._is_bg(origin):
                             continue
@@ -261,7 +273,7 @@ class single_img_process():
                     cnt+=1
 
             else:
-                if self._type == 'neg':
+                if self._patch_type == 'neg':
                     if do_bg_filter:
                         if self._is_bg(origin):
                             continue
@@ -277,7 +289,7 @@ class single_img_process():
 
 
 
-def extract(data, type, auto_save_patch = True):
-    img = single_img_process(data, type, auto_save_patch)
+def extract(data, file_type, patch_type, auto_save_patch = True):
+    img = single_img_process(data, file_type, patch_type, auto_save_patch)
     img._generate_mask()
     return img._get_train_patch()

@@ -69,6 +69,8 @@ class config():
         self.check_dir(self.vis_patch_folder)
         self.check_dir(self.vis_pos_patch_folder)
         self.check_dir(self.vis_neg_patch_folder)
+        self.check_dir(self.patch_save_train_folder)
+        self.check_dir(self.patch_save_val_folder)
         # self.check_dir()
         # self.check_dir()
 
