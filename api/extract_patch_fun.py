@@ -140,18 +140,10 @@ class single_img_process():
         if self._cfg.vis_ov_mask:
             raw_img = self._img.read_region((0, 0), self._min_mask_level, self._min_mask_size)
             mask = self._min_mask.copy()
-            img_mask = raw_img.copy()
             assert raw_img.size == mask.shape
 
-            if (mask == TUMOR).any():
-                img_mask[mask == TUMOR] = self._cfg.alpha * raw_img[mask == TUMOR] + \
-                                         (1 - self._cfg.alpha) * np.array(TUMOR_COLOR)
-            if (mask == NORMAL).any():
-                img_mask[mask == NORMAL] = self._cfg.alpha * raw_img[mask == NORMAL] + \
-                                          (1 - self._cfg.alpha) * np.array(NORMAL_COLOR)
-            if (mask == SELECTED).any():
-                img_mask[mask == SELECTED] = self._cfg.alpha * raw_img[mask == SELECTED] + \
-                                            (1 - self._cfg.alpha) * np.array(SELECTED_COLOR)
+            img_mask = self._fusion_mask_img(raw_img, mask)
+
             mask = Image.fromarray(mask)
             raw_img.save(os.path.join(self._cfg.vis_ov_mask_folder, os.path.basename(
                 self._file_name)[:-4] + '_raw' + self._cfg.img_ext))
@@ -164,10 +156,65 @@ class single_img_process():
             img_mask.close()
             raw_img.close()
 
-    def _save_random_mask_and_patch(self):
+    def _save_random_mask_and_patch(self, patches):
+        pass
+
+    def _fusion_mask_img(self, img, mask):
+        # mask type array
+        # img type Image
+        assert img.size == mask.shape
+        img_mask = img.copy()
+        if (mask == TUMOR).any():
+            img_mask[mask == TUMOR] = self._cfg.alpha * img[mask == TUMOR] + \
+                                      (1 - self._cfg.alpha) * np.array(TUMOR_COLOR)
+        if (mask == NORMAL).any():
+            img_mask[mask == NORMAL] = self._cfg.alpha * img[mask == NORMAL] + \
+                                       (1 - self._cfg.alpha) * np.array(NORMAL_COLOR)
+        if (mask == SELECTED).any():
+            img_mask[mask == SELECTED] = self._cfg.alpha * img[mask == SELECTED] + \
+                                         (1 - self._cfg.alpha) * np.array(SELECTED_COLOR)
+        return img_mask
+
+    def _is_bg(self, origin):
+        img = self._img.read_region(origin, 0, (self._cfg.patch_size, self._cfg.patch_size))
+        # bad case is background    continue
+        if np.array(img)[:, :, 1].mean() > 200: # is bg
+            img.close()
+            return True
+        else:
+            img.close()
+            return False
+
+    def _save_random_patch(self, origin, f_type):
+        if random.random()>self._cfg.vis_patch_prob:
+            return
+        img = self._img.read_region(origin, 0, (self._cfg.patch_size, self._cfg.patch_size))
+
+        max_patch_origin = int(origin/self._cfg.max_frac)
+        max_patch_size = int(self._cfg.patch_size/self._cfg.max_frac)
+        mask = self._max_mask[max_patch_origin[0]: max_patch_origin[0] + max_patch_size,
+                                max_patch_origin[1]: max_patch_origin[1] + max_patch_size]
+        mask = mask.resize((self._cfg.patch_size, self._cfg.patch_size))
+
+        mask = np.asarray(mask)
+        img_mask = self._fusion_mask_img(img, mask)
+
+        if f_type == 'pos':
+            img_mask.save(os.path.join(self._cfg.vis_pos_patch_folder,
+                                  os.path.basename(self._file_name).split('.')[0]
+                                  + '_%d_%d' % (origin[0], origin[1]) + self._cfg.img_ext))
+        else:
+            img_mask.save(os.path.join(self._cfg.vis_neg_patch_folder,
+                                  os.path.basename(self._file_name).split('.')[0]
+                                  + '_%d_%d' % (origin[0], origin[1]) + self._cfg.img_ext))
+        img.close()
+        img_mask.close()
+
+    def _auto_save_patch(self, patches):
         pass
 
     def _get_train_patch(self):
+        do_bg_filter = False
         patches = {'pos': [], 'neg': []}
         assert self._min_mask_size == self._min_mask.shape
         num_row, num_col = self._min_mask_size
@@ -179,8 +226,36 @@ class single_img_process():
         random.shuffle(row_col)
         cnt = 0
         for row, col in row_col:
-            pass
+            if cnt >= self._cfg.patch_num_in_file:
+                break
+            min_patch = self._min_mask[row: row + self._min_patch_size,
+                       col: col + self._min_patch_size]
+            origin = (col * self._cfg.min_frac, row * self._cfg.min_frac)
 
+            H, W = min_patch.shape
+            H_min = int(np.ceil(H / 4))
+            H_max = int(np.ceil(H / 4 * 3))
+            W_min = int(np.ceil(W / 4))
+            W_max = int(np.ceil(W / 4 * 3))
+            if np.count_nonzero(min_patch[H_min:H_max, W_min:W_max] == TUMOR)>0:
+                if self._type == 'pos':
+                    if do_bg_filter:
+                        if self._is_bg(origin):
+                            continue
+                    patches['pos'].append(origin)
+                    self._save_random_patch(origin, 'pos')
+                    cnt+=1
+
+            else:
+                if self._type == 'neg':
+                    if do_bg_filter:
+                        if self._is_bg(origin):
+                            continue
+                    patches['neg'].append(origin)
+                    self._save_random_patch(origin, 'neg')
+                    cnt+=1
+        if self._auto_save_patch:
+            self._auto_save_patch(patches)
         return patches
 
     def _save_patch(self):
