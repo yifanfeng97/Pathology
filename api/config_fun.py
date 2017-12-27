@@ -21,13 +21,17 @@ class config():
         ### folder
         self.split_folder = cfg.get('PREPROCESS', 'split_folder')
         self.patch_coor_folder = cfg.get('PREPROCESS', 'patch_coor_folder')
+        self.vis_ov_mask_folder = cfg.get('PREPROCESS', 'vis_ov_mask_folder')
         ### number
-        self.test_frac = cfg.getfloat('PREPROCESS', 'test_frac')
         self.val_normal = cfg.getint('PREPROCESS', 'val_normal')
         self.val_tumor = cfg.getint('PREPROCESS', 'val_tumor')
-        self.max_frac = cfg.getint('PREPROCESS', 'max_frac')
-        self.min_frac = cfg.getint('PREPROCESS', 'min_frac')
         self.patch_size = cfg.getint('PREPROCESS', 'patch_size')
+        self.patch_num_in_file = cfg.getint('PREPROCESS', 'patch_num_in_file')
+        self.patch_num_in_train = cfg.getint('PREPROCESS', 'patch_num_in_train')
+        self.test_frac = cfg.getfloat('PREPROCESS', 'test_frac')
+        self.alpha = cfg.getfloat('PREPROCESS', 'alpha')
+        self.max_frac = cfg.getfloat('PREPROCESS', 'max_frac')
+        self.min_frac = cfg.getfloat('PREPROCESS', 'min_frac')
 
         ### files
         self.split_file = cfg.get('PREPROCESS', 'split_file')
@@ -55,6 +59,7 @@ class config():
         self.check_dir(self.result_folder)
         self.check_dir(self.split_folder)
         self.check_dir(self.patch_coor_folder)
+        self.check_dir(self.vis_ov_mask_folder)
         # self.check_dir()
         # self.check_dir()
 

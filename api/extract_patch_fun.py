@@ -14,6 +14,10 @@ SELECTED = 1
 NORMAL = 2
 TUMOR = 3
 
+SELECTED_COLOR = [0, 0, 255]
+NORMAL_COLOR = [0, 255, 0]
+TUMOR_COLOR = [255, 0, 0]
+
 
 class single_img_process():
     def __init__(self, data, type, auto_save_patch = True):
@@ -27,6 +31,8 @@ class single_img_process():
         self._max_mask = None
         self._max_mask_size = np.ceil(self._img.level_dimensions[0]/self._cfg.max_frac)
         self._max_mask_level = None
+
+        self._min_patch_size = int(self._cfg.patch_size/self._cfg.min_frac)
 
     def _get_level(self, size):
         level = self._img.level_count -1
@@ -101,13 +107,12 @@ class single_img_process():
                         new_origin[0]: new_size[0] + new_origin[0]] = new_mask
         return selected_mask, tumor_mask
 
-
     def _generate_mask(self):
 
         # init mask without background
         self._min_mask = None
-        self._min_mask_level = self._get_level((2048, 2048))
-        self._min_mask_size = self._img.level_dimensions[self._min_mask_level]
+        self._min_mask_size = np.ceil(self._img.level_dimensions[0]/self._cfg.min_frac)
+        self._min_mask_level = self._get_level(self._min_mask_size)
 
         self._max_mask_level = self._get_level(self._max_mask_size)
         self._max_mask = np.zeros((self._max_mask_size[1], self._max_mask_size[0]), np.uint8)
@@ -133,17 +138,48 @@ class single_img_process():
         self._min_mask = np.asarray(self._min_mask)
 
         if self._cfg.vis_ov_mask:
-            pass
+            raw_img = self._img.read_region((0, 0), self._min_mask_level, self._min_mask_size)
+            mask = self._min_mask.copy()
+            img_mask = raw_img.copy()
+            assert raw_img.size == mask.shape
 
+            if (mask == TUMOR).any():
+                img_mask[mask == TUMOR] = self._cfg.alpha * raw_img[mask == TUMOR] + \
+                                         (1 - self._cfg.alpha) * np.array(TUMOR_COLOR)
+            if (mask == NORMAL).any():
+                img_mask[mask == NORMAL] = self._cfg.alpha * raw_img[mask == NORMAL] + \
+                                          (1 - self._cfg.alpha) * np.array(NORMAL_COLOR)
+            if (mask == SELECTED).any():
+                img_mask[mask == SELECTED] = self._cfg.alpha * raw_img[mask == SELECTED] + \
+                                            (1 - self._cfg.alpha) * np.array(SELECTED_COLOR)
+            mask = Image.fromarray(mask)
+            raw_img.save(os.path.join(self._cfg.vis_ov_mask_folder, os.path.basename(
+                self._file_name)[:-4] + '_raw' + self._cfg.img_ext))
+            img_mask.save(os.path.join(self._cfg.vis_ov_mask_folder, os.path.basename(
+                self._file_name)[:-4] + '_raw_mask' + self._cfg.img_ext))
+            mask.save(os.path.join(self._cfg.vis_ov_mask_folder, os.path.basename(
+                self._file_name)[:-4] + '_mask' + self._cfg.img_ext))
 
+            mask.close()
+            img_mask.close()
+            raw_img.close()
 
     def _save_random_mask_and_patch(self):
         pass
 
     def _get_train_patch(self):
         patches = {'pos': [], 'neg': []}
+        assert self._min_mask_size == self._min_mask.shape
+        num_row, num_col = self._min_mask_size
+        num_row = num_row - self._min_patch_size
+        num_col = num_col - self._min_patch_size
 
-        pass
+        # step = 1
+        row_col = list(product(range(num_row), range(num_col)))
+        random.shuffle(row_col)
+        cnt = 0
+        for row, col in row_col:
+            pass
 
         return patches
 
@@ -155,4 +191,4 @@ class single_img_process():
 def extract(data, type, auto_save_patch = True):
     img = single_img_process(data, type, auto_save_patch)
     img._generate_mask()
-    img._get_train_patch()
+    return img._get_train_patch()
