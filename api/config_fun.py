@@ -25,7 +25,7 @@ class config():
         self.vis_patch_folder = cfg.get('PREPROCESS', 'vis_patch_folder')
         self.vis_pos_patch_folder = cfg.get('PREPROCESS', 'vis_pos_patch_folder')
         self.vis_neg_patch_folder = cfg.get('PREPROCESS', 'vis_neg_patch_folder')
-
+        self.patch_save_folder = cfg.get('PREPROCESS', 'patch_save_folder')
 
         ### number
         self.val_normal = cfg.getint('PREPROCESS', 'val_normal')

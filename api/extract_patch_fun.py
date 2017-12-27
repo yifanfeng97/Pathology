@@ -210,8 +210,22 @@ class single_img_process():
         img.close()
         img_mask.close()
 
-    def _auto_save_patch(self, patches):
-        pass
+    def _save_patches(self, patches):
+
+        cnt = 0
+        if patches['pos'] == []:
+            patches = patches['neg']
+        else:
+            patches = patches['pos']
+        random.shuffle(patches)
+        for patch in patches:
+            if cnt >= self._cfg.patch_num_in_train:
+                break
+            img = self._img.read_region(patch, 0, self._cfg.patch_size)
+            img.save(os.path.join(self._cfg.patch_save_folder,
+                                  os.path.basename(self._file_name) + '_%d_%d'%patch + self._cfg.img_ext))
+            img.close()
+            cnt +=1
 
     def _get_train_patch(self):
         do_bg_filter = False
@@ -255,7 +269,7 @@ class single_img_process():
                     self._save_random_patch(origin, 'neg')
                     cnt+=1
         if self._auto_save_patch:
-            self._auto_save_patch(patches)
+            self._save_patches(patches)
         return patches
 
     def _save_patch(self):
