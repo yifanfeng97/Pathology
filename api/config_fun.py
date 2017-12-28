@@ -55,7 +55,12 @@ class config():
         self.patch_hdf5_train_file_pre = cfg.get('TRAIN', 'patch_hdf5_train_file_pre')
         self.patch_hdf5_val_file_pre = cfg.get('TRAIN', 'patch_hdf5_val_file_pre')
         ### number
-        self.patch_num_each_hdf5 = cfg.getfloat('TRAIN', 'patch_num_each_hdf5')
+        self.patch_num_each_hdf5 = cfg.getint('TRAIN', 'patch_num_each_hdf5')
+        self.model_info = cfg.getint('TRAIN', 'model_info')
+        ### others
+        self.model = cfg.get('TRAIN', 'model')
+        self.model_pretrain = cfg.getboolean('TRAIN', 'model_pretrain')
+
 
         # self. = cfg.get('DEFAULT', '')
         # self. = cfg.get('DEFAULT', '')
