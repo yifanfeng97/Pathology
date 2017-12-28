@@ -7,7 +7,7 @@ import random
 import sys
 from PIL import Image
 from torch.utils.data import Dataset
-import patch_process_fun
+import patch_preprocess_fun
 
 def _precoss_patches(cfg, dataset, file_type):
     data_block = np.zeros((cfg.patch_num_each_hdf5, cfg.patch_size * cfg.patch_size), dtype=np.uint8)
@@ -71,7 +71,7 @@ class h5_dataloader(Dataset):
         cfg = config_fun.config()
         self._raw_size = cfg.patch_size
         self._train = train
-        self._compose = patch_process_fun.get_compose()
+        self._compose = patch_preprocess_fun.get_compose()
         file_names = []
         if self._train:
             file_names = glob.glob(cfg.patch_hdf5_train_file_pre + '*')

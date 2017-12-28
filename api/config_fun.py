@@ -51,15 +51,28 @@ class config():
         self.train_folder = cfg.get('TRAIN', 'train_folder')
         self.patch_coor_file = cfg.get('TRAIN', 'patch_coor_file')
         self.patch_hdf5_folder = cfg.get('TRAIN', 'patch_hdf5_folder')
+        self.checkpoint_folder = cfg.get('TRAIN', 'checkpoint_folder')
         ### file
         self.patch_hdf5_train_file_pre = cfg.get('TRAIN', 'patch_hdf5_train_file_pre')
         self.patch_hdf5_val_file_pre = cfg.get('TRAIN', 'patch_hdf5_val_file_pre')
+        self.init_model_file = cfg.get('TRAIN', 'init_model_file')
+        self.optim_state_file = cfg.get('TRAIN', 'optim_state_file')
         ### number
         self.patch_num_each_hdf5 = cfg.getint('TRAIN', 'patch_num_each_hdf5')
         self.model_info = cfg.getint('TRAIN', 'model_info')
+        self.num_classes = cfg.getint('TRAIN', 'num_classes')
+        self.workers = cfg.getint('TRAIN', 'workers')
+        self.batch_size = cfg.getint('TRAIN', 'batch_size')
+        self.lr = cfg.getfloat('TRAIN', 'lr')
+        self.momentum = cfg.getfloat('TRAIN', 'momentum')
+        self.weight_decay = cfg.getfloat('TRAIN', 'weight_decay')
+        self.max_epoch = cfg.getint('TRAIN', 'max_epoch')
+        self.print_freq = cfg.getint('TRAIN', 'print_freq')
         ### others
         self.model = cfg.get('TRAIN', 'model')
         self.model_pretrain = cfg.getboolean('TRAIN', 'model_pretrain')
+        self.gpu_id = cfg.getboolean('TRAIN', 'gpu_id')
+        self.resume_training = cfg.getboolean('TRAIN', 'resume_training')
 
 
         # self. = cfg.get('DEFAULT', '')
@@ -82,6 +95,7 @@ class config():
         self.check_dir(self.train_folder)
         self.check_dir(self.patch_coor_folder)
         self.check_dir(self.patch_hdf5_folder)
+        self.check_dir(self.checkpoint_folder)
         # self.check_dir()
         # self.check_dir()
 

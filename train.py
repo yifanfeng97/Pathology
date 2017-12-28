@@ -21,104 +21,9 @@ from api import config_fun
 import train_helper
 
 
+# os.environ['CUDA_VISIBLE_DEVICES'] = cfg.gpu_id
 
-cfg = config_fun.config()
-model = train_helper.get_model(cfg)
-
-parser = argparse.ArgumentParser()
-
-# specify data and datapath
-parser.add_argument('--dataset', default='modelnet40_v12', help='modelnet40_v12 | ?? ')
-parser.add_argument('--data_dir', default='../data/data_h5', help='path to dataset')
-# number of workers for loading data
-parser.add_argument('--workers', type=int,
-                    help='number of data loading workers, 0 means loading data using the main process(this)', default=2)
-# loading data
-parser.add_argument('--batchSize', type=int, default=8, help='input batch size')
-parser.add_argument('--pool_idx', type=int, default=21,
-                    help='where to pool, avoid to pool at relu when it is inplace, mark dirty error')
-# spcify optimization stuff
-parser.add_argument('--adam', action='store_true', help='Whether to use adam (default is rmsprop)')
-parser.add_argument('--lr', '--learning-rate', default=0.001, type=float,
-                    help='initial learning rate')
-parser.add_argument('--momentum', default=0.9, type=float, help='momentum')
-parser.add_argument('--weight-decay', '--wd', default=1e-4, type=float,
-                    help='weight decay (default: 1e-4)')
-
-parser.add_argument('--max_epochs', type=int, default=100, help='number of epochs to train for')
-# parser.add_argument('--workers', type=int, help='number of data loading workers', default=4)
-parser.add_argument('--nepoch', type=int, default=25, help='number of epochs to train for')
-parser.add_argument('--print_freq', type=int, default=25, help='number of iterations to print ')
-parser.add_argument('--checkpoint_folder', default=None, help='check point path')
-parser.add_argument('--model', type=str, default='', help='model path')
-
-# cuda stuff
-parser.add_argument('--gpu_id', type=str, default='1', help='which gpu to use, used only when ngpu is 1')
-parser.add_argument('--cuda', action='store_true', help='enables cuda')
-parser.add_argument('--ngpu', type=int, default=1, help='number of GPUs to use')
-# clamp parameters into a cube
-parser.add_argument('--gradient_clip', type=float, default=0.01)
-
-parser.add_argument('--have_aux', type=bool, default=False)
-parser.add_argument('--input_views', type=int, default=12)
-
-# resume training from a checkpoint
-parser.add_argument('--init_model', default='', help="model to resume training")
-parser.add_argument('--optim_state_from', default='', help="optim state to resume training")
-parser.add_argument('--with_group', default=False, type=bool, help="whether with group")
-
-opt = parser.parse_args()
-print(opt)
-
-if opt.checkpoint_folder is None:
-    if with_group:
-        if opt.have_aux:
-            opt.checkpoint_folder = '%d_gnet_group_models_with_aux_checkpoint' % opt.input_views
-        else:
-            opt.checkpoint_folder = '%d_gnet_group_models_checkpoint' % opt.input_views
-    else:
-        if opt.have_aux:
-            opt.checkpoint_folder = '%d_gnet_no_group_models_with_aux_checkpoint' % opt.input_views
-        else:
-            opt.checkpoint_folder = '%d_gnet_no_group_models_checkpoint' % opt.input_views
-
-# make dir
-os.system('mkdir {0}'.format(opt.checkpoint_folder))
-print('mkdir %s' % opt.checkpoint_folder)
-
-train_dataset = hdf5_fun.h5_dataloader(train= True)
-val_dataset = hdf5_fun.h5_dataloader(train= False)
-
-
-data_dir = r'../data'
-
-print('number of train samples is: ', len(train_dataset))
-print('number of test samples is: ', len(val_dataset))
-print('finished loading data')
-
-os.environ['CUDA_VISIBLE_DEVICES'] = opt.gpu_id
-
-ngpu = int(opt.ngpu)
-# opt.manualSeed = random.randint(1, 10000) # fix seed
-opt.manualSeed = 123456
-
-if torch.cuda.is_available() and not opt.cuda:
-    print("WARNING: You have a CUDA device, so you should probably run with --cuda")
-else:
-    if ngpu == 1:
-        print('so we use 1 gpu to training')
-        print('setting gpu on gpuid {0}'.format(opt.gpu_id))
-
-        if opt.cuda:
-            torch.cuda.manual_seed(opt.manualSeed)
-
-cudnn.benchmark = True
-print("Random Seed: ", opt.manualSeed)
-random.seed(opt.manualSeed)
-torch.manual_seed(opt.manualSeed)
-
-
-def train(train_loader, model_gnet, criterion, optimizer, epoch, opt):
+def train(train_loader, model_gnet, criterion, optimizer, epoch, cfg):
     """
     train for one epoch on the training set
     """
@@ -160,7 +65,7 @@ def train(train_loader, model_gnet, criterion, optimizer, epoch, opt):
         # print(points.size())
         # print(labels.size())
         # shift data to GPU
-        if opt.cuda:
+        if cfg.cuda:
             inputs_12v = inputs_12v.cuda()
             #            labels = labels.long().cuda() # must be long cuda tensor
             labels = labels.cuda()  # must be long cuda tensor
@@ -194,7 +99,7 @@ def train(train_loader, model_gnet, criterion, optimizer, epoch, opt):
         #        # contrastive center loss
         #        print('size')
         #        print(preds.size(), labels.size())
-        if opt.have_aux:
+        if cfg.have_aux:
             preds, aux = preds
             loss_main = criterion(preds, labels)
             loss_aux = criterion(aux, labels)
@@ -226,14 +131,14 @@ def train(train_loader, model_gnet, criterion, optimizer, epoch, opt):
         ###########################################
         optimizer.zero_grad()
         loss.backward()
-        #        utils.clip_gradient(optimizer, opt.gradient_clip)
+        #        utils.clip_gradient(optimizer, cfg.gradient_clip)
         optimizer.step()
 
         # debug_here()
         # measure elapsed time
         batch_time.update(time.time() - end)
         end = time.time()
-        if i % opt.print_freq == 0:
+        if i % cfg.print_freq == 0:
             print('Epoch: [{0}][{1}/{2}]\t'
                   'Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
                   'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
@@ -246,7 +151,7 @@ def train(train_loader, model_gnet, criterion, optimizer, epoch, opt):
             # # loss accuracy
             # step = epoch * len(train_loader) + i
             # loss_name= None
-            # if opt.have_aux:
+            # if cfg.have_aux:
             #     loss_name = 'mixed_loss'
             # else:
             #     loss_name = 'loss'
@@ -270,7 +175,7 @@ def train(train_loader, model_gnet, criterion, optimizer, epoch, opt):
     print('mean class accuracy at epoch {0}: {1} '.format(epoch, confusion.mean_class_acc))
 
 
-def validate(test_loader, model_gnet, criterion, optimizer, epoch, opt):
+def validate(test_loader, model_gnet, criterion, optimizer, epoch, cfg):
     """
     test for one epoch on the testing set
     """
@@ -313,7 +218,7 @@ def validate(test_loader, model_gnet, criterion, optimizer, epoch, opt):
         # print(points.size())
         # print(labels.size())
         # shift data to GPU
-        if opt.cuda:
+        if cfg.cuda:
             inputs_12v = inputs_12v.cuda()
             labels = labels.cuda()  # must be long cuda tensor
 
@@ -345,7 +250,7 @@ def validate(test_loader, model_gnet, criterion, optimizer, epoch, opt):
         batch_time.update(time.time() - end)
         end = time.time()
 
-        if i % opt.print_freq == 0:
+        if i % cfg.print_freq == 0:
             print('Test: [{0}/{1}]\t'
                   'Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
                   'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
@@ -381,102 +286,82 @@ def validate(test_loader, model_gnet, criterion, optimizer, epoch, opt):
 
 
 def main():
-    global opt
+    cfg = config_fun.config()
+    model = train_helper.get_model(cfg)
+
+    train_dataset = hdf5_fun.h5_dataloader(train=True)
+    val_dataset = hdf5_fun.h5_dataloader(train=False)
+
+    print('number of train samples is: ', len(train_dataset))
+    print('number of test samples is: ', len(val_dataset))
+    print('finished loading data')
     best_prec1 = 0
     # only used when we resume training from some checkpoint model
     resume_epoch = 0
     # train data loader
     # for loader, droplast by default is set to false
-    train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=opt.batchSize,
-                                               shuffle=True, num_workers=int(opt.workers))
-    test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=opt.batchSize,
-                                              shuffle=True, num_workers=int(opt.workers))
+    train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=cfg.batch_size,
+                                               shuffle=True, num_workers=int(cfg.workers))
+    val_loader = torch.utils.data.DataLoader(val_dataset, batch_size=cfg.batch_size,
+                                              shuffle=True, num_workers=int(cfg.workers))
 
-    # create model
-    model_gnet = gnet.inception_v3(pretrained=True, aux_logits=opt.have_aux,
-                                   transform_input=True, num_classes=40, \
-                                   n_views=opt.input_views, with_group=with_group)
-    if opt.init_model != '':
-        print('loading pretrained model from {0}'.format(opt.init_model))
-        checkpoint = torch.load(opt.init_model)
-        model_gnet.load_state_dict(checkpoint['google_net'])
+    if cfg.resume_training:
+        print('loading pretrained model from {0}'.format(cfg.init_model_file))
+        checkpoint = torch.load(cfg.init_model_file)
+        model.load_state_dict(checkpoint['model_param'])
 
-    print('google net model: ')
-    print(model_gnet)
+    print('model: ')
+    print(model)
 
     # optimizer
-    optimizer = optim.SGD(model_gnet.parameters(), opt.lr,
-                          momentum=opt.momentum,
-                          weight_decay=opt.weight_decay)
+    optimizer = optim.SGD(model.parameters(), cfg.lr,
+                          momentum=cfg.momentum,
+                          weight_decay=cfg.weight_decay)
 
     # if we load model from pretrained, we need the optim state here
-    if opt.optim_state_from != '':
-        print('loading optim model from {0}'.format(opt.optim_state_from))
-        optim_state = torch.load(opt.optim_state_from)
+    if cfg.resume_training != '':
+        print('loading optim model from {0}'.format(cfg.optim_state_file))
+        optim_state = torch.load(cfg.optim_state_file)
 
         resume_epoch = optim_state['epoch']
         best_prec1 = optim_state['best_prec1']
         optimizer.load_state_dict(optim_state['optim_state_best'])
 
-
-
-        # cross entropy already contains logsoftmax
+    # cross entropy already contains logsoftmax
     criterion = nn.CrossEntropyLoss()
 
-    if opt.cuda:
-        print('shift model and criterion to GPU .. ')
-        model_gnet = model_gnet.cuda()
-        # define loss function (criterion) and pptimizer
-        criterion = criterion.cuda()
-    # optimizer
-    # fix model_prev_pool parameters
-    for p in model_gnet.parameters():
-        p.requires_grad = False  # to avoid computation
-    for p in model_gnet.fc.parameters():
-        p.requires_grad = True  # to  computation
-    if with_group:
-        for p in model_gnet.fc_q.parameters():
-            p.requires_grad = True
-    if opt.have_aux:
-        for p in model_gnet.AuxLogits.parameters():
-            p.requires_grad = True  # to  computation
+    print('shift model and criterion to GPU .. ')
+    model = model.cuda()
+    # define loss function (criterion) and pptimizer
+    criterion = criterion.cuda()
 
-    for epoch in range(resume_epoch, opt.max_epochs):
-        #################################
-        # train for one epoch
-        # debug_here()
-        #################################
-        # debug_here()
+    for epoch in range(resume_epoch, cfg.max_epoch):
 
-        if epoch >= 20:
-            for p in model_gnet.parameters():
-                p.requires_grad = True
-
-        train(train_loader, model_gnet, criterion, optimizer, epoch, opt)
+        train(train_loader, model, criterion, optimizer, epoch, cfg)
 
         #################################
         # validate
         #################################
-        prec1 = validate(test_loader, model_gnet, criterion, optimizer, epoch, opt)
+        prec1 = validate(val_loader, model, criterion, optimizer, epoch, cfg)
 
         ##################################
         # save checkpoints
         ##################################
         if best_prec1 < prec1:
             best_prec1 = prec1
-            path_checkpoint = '{0}/model_best.pth'.format(opt.checkpoint_folder)
+            path_checkpoint = '{0}/{1}/model_param.pth'.format(cfg.checkpoint_folder, epoch)
             checkpoint = {}
-            checkpoint['google_net'] = model_gnet.state_dict()
+            checkpoint['model_param'] = model.state_dict()
 
-            utils.save_checkpoint(checkpoint, path_checkpoint)
+            train_helper.save_checkpoint(checkpoint, path_checkpoint)
 
             # save optim state
-            path_optim_state = '{0}/optim_state_best.pth'.format(opt.checkpoint_folder)
+            path_optim_state = '{0}/{1}/optim_state_best.pth'.format(cfg.checkpoint_folder, epoch)
             optim_state = {}
-            optim_state['epoch'] = epoch + 1  # because epoch starts from 0
+            optim_state['epoch'] = epoch  # because epoch starts from 0
             optim_state['best_prec1'] = best_prec1
             optim_state['optim_state_best'] = optimizer.state_dict()
-            utils.save_checkpoint(optim_state, path_optim_state)
+            train_helper.save_checkpoint(optim_state, path_optim_state)
             # problem, should we store latest optim state or model, currently, we donot
 
         print('best accuracy: ', best_prec1)
