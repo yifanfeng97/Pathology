@@ -7,6 +7,7 @@ import random
 import sys
 from PIL import Image
 from torch.utils.data import Dataset
+import patch_process_fun
 
 def _precoss_patches(cfg, dataset, file_type):
     data_block = np.zeros((cfg.patch_num_each_hdf5, cfg.patch_size * cfg.patch_size), dtype=np.uint8)
@@ -66,11 +67,11 @@ def h5_extract_data_label(img_size, file_name):
     return data.reshape(-1, img_size, img_size), label
 
 class h5_dataloader(Dataset):
-    def __init__(self, input_size = 224, train = True):
+    def __init__(self, train = True):
         cfg = config_fun.config()
         self._raw_size = cfg.patch_size
-        self._input_size = input_size
         self._train = train
+        self._compose = patch_process_fun.get_compose()
         file_names = []
         if self._train:
             file_names = glob.glob(cfg.patch_hdf5_train_file_pre + '*')
@@ -90,20 +91,11 @@ class h5_dataloader(Dataset):
         assert self._data.size(0) == self._label.size(0)
 
     def __getitem__(self, index):
-        return self._data[index], self._label[index]
+        return self._compose(self._data[index]), self._label[index]
 
     def __len__(self):
         return self._label.size(0)
 
-def get_h5_dataloader(cfg, train):
-    if cfg.model == 'vgg':
-        return h5_dataloader(224, train)
-    elif cfg.model == 'googlenet':
-        return h5_dataloader(299, train)
-    elif cfg.model == 'resnet':
-        return h5_dataloader(224, train)
-    print('not support the model: '+ cfg.model)
-    sys.exit(-1)
 
 if __name__ == '__main__':
     pass

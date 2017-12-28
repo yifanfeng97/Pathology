@@ -18,36 +18,12 @@ import torch.utils.data
 from torch.autograd import Variable
 from api import hdf5_fun
 from api import config_fun
+import train_helper
 
 
-def get_model(cfg):
-    model = None
-    if cfg.model == 'googlenet':
-        from models import inception_v3
-        model = inception_v3.inception_v3(pretrained = cfg.model_pretrain)
-    elif cfg.model == 'vgg':
-        from models import vgg
-        if cfg.model_info == 19:
-            model = vgg.vgg19_bn(pretrained = cfg.model_pretrain)
-        elif cfg.model_info == 16:
-            model = vgg.vgg16_bn(pretrained = cfg.model_pretrain)
-    elif cfg.model == 'resnet':
-        from models import resnet
-        if cfg.model_info == 18:
-            model = resnet.resnet18(pretrained= cfg.model_pretrain)
-        elif cfg.model_info == 34:
-            model = resnet.resnet34(pretrained= cfg.model_pretrain)
-        elif cfg.model_info == 50:
-            model = resnet.resnet50(pretrained= cfg.model_pretrain)
-        elif cfg.model_info == 101:
-            model = resnet.resnet101(pretrained= cfg.model_pretrain)
-    if model is None:
-        print('not support :' + cfg.model)
-        sys.exit(-1)
-    return model
 
 cfg = config_fun.config()
-model = get_model(cfg)
+model = train_helper.get_model(cfg)
 
 parser = argparse.ArgumentParser()
 
@@ -93,7 +69,6 @@ parser.add_argument('--with_group', default=False, type=bool, help="whether with
 
 opt = parser.parse_args()
 print(opt)
-with_group = False
 
 if opt.checkpoint_folder is None:
     if with_group:
@@ -110,34 +85,15 @@ if opt.checkpoint_folder is None:
 # make dir
 os.system('mkdir {0}'.format(opt.checkpoint_folder))
 print('mkdir %s' % opt.checkpoint_folder)
-# # logger dir
-# os.system('mkdir log')
-# logger = None
-# log_pre_name = None
-# if opt.have_aux:
-#     os.system('rm -r log/%d_gnet_clustering_aux'%opt.input_views)
-#     os.system('mkdir log/%d_gnet_clustering_aux'%opt.input_views)
-#     logger = Logger('log/%d_gnet_clustering_aux'%opt.input_views)
-#     log_pre_name='gnet/with_quality/with_aux/'
-# else:
-#     os.system('rm -r log/%d_gnet_clustering'%opt.input_views)
-#     os.system('mkdir log/%d_gnet_clustering'%opt.input_views)
-#     logger = Logger('log/%d_gnet_clustering'%opt.input_views)
-#     log_pre_name='gnet/with_quality/without_aux/'
-# dataset
-if opt.dataset == 'modelnet40_v12':
-    train_dataset = modelnet40_dset.Modelnet40_Dataset \
-        (opt.data_dir, image_size=299, train=True, n_views=opt.input_views)
-    test_dataset = modelnet40_dset.Modelnet40_Dataset \
-        (opt.data_dir, image_size=299, train=False, n_views=opt.input_views)
-else:
-    print('not supported dataset, so exit')
-    exit()
+
+train_dataset = hdf5_fun.h5_dataloader(train= True)
+val_dataset = hdf5_fun.h5_dataloader(train= False)
+
 
 data_dir = r'../data'
 
 print('number of train samples is: ', len(train_dataset))
-print('number of test samples is: ', len(test_dataset))
+print('number of test samples is: ', len(val_dataset))
 print('finished loading data')
 
 os.environ['CUDA_VISIBLE_DEVICES'] = opt.gpu_id
