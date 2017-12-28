@@ -17,7 +17,7 @@ class config():
         self.result_folder = cfg.get('DEFAULT', 'result_folder')
         ### others
         self.img_ext = cfg.get('DEFAULT', 'img_ext')
-        ## preprocess
+        ## PREPROCESS
         ### folder
         self.split_folder = cfg.get('PREPROCESS', 'split_folder')
         self.patch_coor_folder = cfg.get('PREPROCESS', 'patch_coor_folder')
@@ -42,17 +42,21 @@ class config():
         ### files
         self.split_file = cfg.get('PREPROCESS', 'split_file')
         self.test_file = cfg.get('PREPROCESS', 'test_file')
-        self.patch_coor_file = cfg.get('PREPROCESS', 'patch_coor_file')
         ### others
         self.redividing = cfg.getboolean('PREPROCESS', 'redividing')
         self.vis_ov_mask = cfg.getboolean('PREPROCESS', 'vis_ov_mask')
-        # self. = cfg.get('DEFAULT', '')
-        # self. = cfg.get('DEFAULT', '')
-        # self. = cfg.get('DEFAULT', '')
-        # self. = cfg.get('DEFAULT', '')
-        # self. = cfg.get('DEFAULT', '')
-        # self. = cfg.get('DEFAULT', '')
-        # self. = cfg.get('DEFAULT', '')
+
+        ## TRAIN
+        ### folder
+        self.train_folder = cfg.get('TRAIN', 'train_folder')
+        self.patch_coor_file = cfg.get('TRAIN', 'patch_coor_file')
+        self.patch_hdf5_folder = cfg.get('TRAIN', 'patch_hdf5_folder')
+        ### file
+        self.patch_hdf5_train_file_pre = cfg.get('TRAIN', 'patch_hdf5_train_file_pre')
+        self.patch_hdf5_val_file_pre = cfg.get('TRAIN', 'patch_hdf5_val_file_pre')
+        ### number
+        self.patch_num_each_hdf5 = cfg.getfloat('TRAIN', 'patch_num_each_hdf5')
+
         # self. = cfg.get('DEFAULT', '')
         # self. = cfg.get('DEFAULT', '')
         # self. = cfg.get('DEFAULT', '')
@@ -64,13 +68,15 @@ class config():
         self.check_dir(self.tumor_anno_folder)
         self.check_dir(self.result_folder)
         self.check_dir(self.split_folder)
-        self.check_dir(self.patch_coor_folder)
         self.check_dir(self.vis_ov_mask_folder)
         self.check_dir(self.vis_patch_folder)
         self.check_dir(self.vis_pos_patch_folder)
         self.check_dir(self.vis_neg_patch_folder)
-        self.check_dir(self.patch_save_train_folder)
-        self.check_dir(self.patch_save_val_folder)
+        self.check_dir(self.patch_save_folder)
+        # TRAIN
+        self.check_dir(self.train_folder)
+        self.check_dir(self.patch_coor_folder)
+        self.check_dir(self.patch_hdf5_folder)
         # self.check_dir()
         # self.check_dir()
 
