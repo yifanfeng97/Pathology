@@ -32,6 +32,8 @@ def train(train_loader, model, criterion, optimizer, epoch, cfg):
     losses = meter.averagevaluemeter.AverageValueMeter()
     top1 = meter.averagevaluemeter.AverageValueMeter()
     ap = meter.apmeter.APMeter()
+    confusion = meter.confusionmeter.ConfusionMeter(cfg.num_classes)
+    prec1 = meter.classerrormeter.ClassErrorMeter(accuracy=True)
 
     # training mode
     model.train()
@@ -39,72 +41,40 @@ def train(train_loader, model, criterion, optimizer, epoch, cfg):
     end = time.time()
     for i, (inputs_img, gt_labels) in enumerate(train_loader):
         batch_time.reset()
+        prec1.reset()
         if isinstance(inputs_img, torch.ByteTensor):
             inputs_img = inputs_img.float()
         gt_labels = gt_labels.long().view(-1)
         inputs_img = Variable(inputs_img)
-        labels = Variable(gt_labels)
+        gt_labels = Variable(gt_labels)
 
         # shift data to GPU
         inputs_img = inputs_img.cuda()
-        #            labels = labels.long().cuda() # must be long cuda tensor
-        labels = labels.cuda()  # must be long cuda tensor
+        gt_labels = gt_labels.cuda()  # must be long cuda tensor
 
         # forward, backward optimize
-        # (bz*12) X C x H x W
 
         preds = model(inputs_img)  # bz x C x H x W
-        #        print('labels:\n', labels.data)
-        #        print('preds:\n', preds.data)
-        # in pytorch, unlike torch, the label is 0-indexed (start from 0)
-        #        labels = labels.sub_(1)
-
-        # debug_here()
-        # if labels.data.max() >= 40:
-        #    debug_here()
-        #   print('error')
-
-        # if labels.data.min() < 0:
-        #    debug_here()
-        #    print('error')
-        ###########################################
-        ## add center loss
-        ###########################################
-        # 40 classes
-        #        alpha = 0.1
-        #        # preds as features
-        #        center_loss, model_after_pool._buffers['centers'] = utils.get_center_loss(model_after_pool._buffers['centers'],
-        #            preds, labels, alpha, 40)
-        #
-        #        # contrastive center loss
-        #        print('size')
-        #        print(preds.size(), labels.size())
-        if cfg.have_aux:
+        if cfg.model == 'googlenet':
             preds, aux = preds
-            loss_main = criterion(preds, labels)
-            loss_aux = criterion(aux, labels)
+            loss_main = criterion(preds, gt_labels)
+            loss_aux = criterion(aux, gt_labels)
             softmax_loss = loss_main + 0.3 * loss_aux
         else:
-            softmax_loss = criterion(preds, labels)
-        # center_loss_weight = 0 # set it to 0.1, can achive 91.625, set it to 0,
-        #        loss = center_loss_weight * center_loss + softmax_loss
+            softmax_loss = criterion(preds, gt_labels)
         loss = softmax_loss
 
         ###########################################
         ## measure accuracy
         ###########################################
-        prec1 = utils.accuracy(preds.data, labels.data, topk=(1,))[0]
+        prec1.add(preds.data, gt_labels.data)
         losses.add(loss.data[0], preds.size(0))  # batchsize
         top1.add(prec1[0], preds.size(0))
 
         ###############################################
         ## confusion table
         ###############################################
-        #        print('preds:')
-        #        print(preds.data)
-        #        print('labels:')
-        #        print(labels.data)
-        confusion.batchAdd(preds.data, labels.data)
+        confusion.add(preds.data, gt_labels.data)
 
         ###########################################
         ## backward
@@ -116,7 +86,7 @@ def train(train_loader, model, criterion, optimizer, epoch, cfg):
 
         # debug_here()
         # measure elapsed time
-        batch_time.update(time.time() - end)
+        batch_time.add()
         end = time.time()
         if i % cfg.print_freq == 0:
             print('Epoch: [{0}][{1}/{2}]\t'
