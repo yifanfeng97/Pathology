@@ -13,6 +13,10 @@ if not os.path.exists(cfg.split_file) or cfg.redividing:
 else:
     print('find the split file, not execute random divide data!')
 
-patch_fun.generate_patch(auto_save_patch=True)
-
+if cfg.regenerate:
+    print('generate patch~')
+    patch_fun.generate_patch(auto_save_patch=True)
+else:
+    print('not generate patch~')
+print('convert patches to hdf5 files~')
 hdf5_fun.convert_patch_to_hdf5()
