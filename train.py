@@ -1,20 +1,12 @@
 # -*- coding: utf-8 -*-
 
 from __future__ import print_function
-import argparse
-import random
-import time
-import os
-import sys
-import numpy as np
-
 import torch
 import torch.nn as nn
 import torch.nn.parallel  # for multi-GPU training
 import torch.backends.cudnn as cudnn
 import torch.optim as optim
 import torch.utils.data
-
 from torch.autograd import Variable
 from api import hdf5_fun
 from api import config_fun
@@ -38,7 +30,6 @@ def train(train_loader, model, criterion, optimizer, epoch, cfg):
     # training mode
     model.train()
 
-    end = time.time()
     for i, (inputs_img, gt_labels) in enumerate(train_loader):
         batch_time.reset()
         prec1.reset()
@@ -53,7 +44,6 @@ def train(train_loader, model, criterion, optimizer, epoch, cfg):
         gt_labels = gt_labels.cuda()  # must be long cuda tensor
 
         # forward, backward optimize
-
         preds = model(inputs_img)  # bz x C x H x W
         if cfg.model == 'googlenet':
             preds, aux = preds
@@ -81,20 +71,17 @@ def train(train_loader, model, criterion, optimizer, epoch, cfg):
         ###########################################
         optimizer.zero_grad()
         loss.backward()
-        #        utils.clip_gradient(optimizer, cfg.gradient_clip)
+        # train_helper.clip_gradient(optimizer, cfg.gradient_clip)
         optimizer.step()
 
         # debug_here()
-        # measure elapsed time
-        batch_time.add()
-        end = time.time()
         if i % cfg.print_freq == 0:
             print('Epoch: [{0}][{1}/{2}]\t'
                   'Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
                   'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
                   'Prec@1 {top1.val:.3f} ({top1.avg:.3f})'.format(
-                epoch, i, len(train_loader), batch_time=batch_time,
-                loss=losses, top1=top1))
+                epoch, i, len(train_loader), batch_time=batch_time.value(),
+                loss=losses.value(), top1=top1.value()))
             # ###########################################
             # ## Log
             # ###########################################
@@ -121,92 +108,69 @@ def train(train_loader, model, criterion, optimizer, epoch, cfg):
     ## confusion table
     #####################################
     # debug_here()
-    confusion.updateValids()
-    print('mean class accuracy at epoch {0}: {1} '.format(epoch, confusion.mean_class_acc))
+    print('mean class accuracy at epoch {0}: {1} '.format(epoch, confusion.value()))
 
 
-def validate(test_loader, model_gnet, criterion, optimizer, epoch, cfg):
+def validate(val_loader, model, criterion, epoch, cfg):
     """
     test for one epoch on the testing set
     """
-    batch_time = utils.AverageMeter()
-    losses = utils.AverageMeter()
-    top1 = utils.AverageMeter()
+    batch_time = meter.timemeter.TimeMeter()
+    losses = meter.averagevaluemeter.AverageValueMeter()
+    top1 = meter.averagevaluemeter.AverageValueMeter()
+    ap = meter.apmeter.APMeter()
+    confusion = meter.confusionmeter.ConfusionMeter(cfg.num_classes)
+    prec1 = meter.classerrormeter.ClassErrorMeter(accuracy=True)
 
-    ###############################
-    ## confusion table
-    ###############################
-    confusion = utils.ConfusionMatrix(40)
 
     # training mode
-    model_gnet.eval()
+    model.eval()
 
-    end = time.time()
-    for i, (inputs_12v, labels) in enumerate(test_loader):
-        # bz x 12 x 1 x 224 x 224
-        # re-view it to be : (bz * 12) x 3 x 224 x 224
-        # note that inputs_12v.size(2) = 1, so we expand it to be 3
-        inputs_12v = inputs_12v.view(inputs_12v.size(0) * inputs_12v.size(1), inputs_12v.size(2),
-                                     inputs_12v.size(3), inputs_12v.size(4))
-        labels = labels.long().view(-1)
-        if isinstance(inputs_12v, torch.ByteTensor):
-            inputs_12v = inputs_12v.float()
-        # # expanding: (bz * 12) x 3 x 224 x 224
-        #        inputs_12v = inputs_12v.expand(inputs_12v.size(0), 3,
-        #            inputs_12v.size(2), inputs_12v.size(3))
+    for i, (input_img, gt_labels) in enumerate(val_loader):
+        batch_time.reset()
+        prec1.reset()
 
-        # byte tensor to float tensor
-        # normalize data here instead of using clouse in dataset class, because it is
-        # not format 12 x 1 x H x W in stead of C x H x W
-        #        mean =  223.03979492188
-        #        std = 1.0
-        #        inputs_12v = utils.preprocess(inputs_12v, mean, std, False) # False means not do data augmentation
+        if isinstance(input_img, torch.ByteTensor):
+            input_img = input_img.float()
+        gt_labels = gt_labels.long().view(-1)
+        input_img = Variable(input_img, volatile=True)
+        gt_labels = Variable(gt_labels, volatile=True)
 
-        inputs_12v = Variable(inputs_12v, volatile=True)
-        labels = Variable(labels, volatile=True)
-
-        # print(points.size())
-        # print(labels.size())
         # shift data to GPU
-        if cfg.cuda:
-            inputs_12v = inputs_12v.cuda()
-            labels = labels.cuda()  # must be long cuda tensor
+        input_img = input_img.cuda()
+        gt_labels = gt_labels.cuda()  # must be long cuda tensor
 
         # forward, backward optimize
-        # (bz*12) X C x H x W
-        preds = model_gnet(inputs_12v)  # bz x C x H x W
+        preds = model(input_img)  # bz x C x H x W
 
         # print(labels)
         # in pytorch, unlike torch, the label is 0-indexed (start from 0)
         #        labels = labels.sub_(1)
 
         # currently we do not use center loss here
-        loss = criterion(preds, labels)
+        loss = criterion(preds, gt_labels)
 
         ###########################################
         ## measure accuracy
         ###########################################
-        prec1 = utils.accuracy(preds.data, labels.data, topk=(1,))[0]
-        losses.update(loss.data[0], preds.size(0))  # batchsize
-        top1.update(prec1[0], preds.size(0))
+        prec1.add(preds.data, gt_labels.data)
+        losses.add(loss.data[0], preds.size(0))  # batchsize
+        top1.add(prec1.value(), preds.size(0))
 
         ###############################################
         ## confusion table
         ###############################################
-        confusion.batchAdd(preds.data, labels.data)
+        confusion.add(preds.data, gt_labels.data)
 
-        # debug_here()
         # measure elapsed time
-        batch_time.update(time.time() - end)
-        end = time.time()
 
         if i % cfg.print_freq == 0:
             print('Test: [{0}/{1}]\t'
                   'Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
                   'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
                   'Prec@1 {top1.val:.3f} ({top1.avg:.3f})'.format(
-                i, len(test_loader), batch_time=batch_time, loss=losses,
-                top1=top1))
+                i, len(val_loader), batch_time=batch_time.value(), loss=losses.value(),
+                top1=top1.value()))
             # ###########################################
             # ## Log
             # ###########################################
@@ -225,14 +189,10 @@ def validate(test_loader, model_gnet, criterion, optimizer, epoch, cfg):
 
     print(' * Prec@1 {top1.avg:.3f}'.format(top1=top1))
 
-    #####################################
-    ## confusion table
-    #####################################
-    confusion.updateValids()
-    print('mean class accuracy at epoch {0}: {1} '.format(epoch, confusion.mean_class_acc))
+    print('mean class accuracy at epoch {0}: {1} '.format(epoch, confusion.value()))
 
     # print(tested_samples)
-    return top1.avg
+    return top1.value()
 
 
 def main():
@@ -292,7 +252,7 @@ def main():
         #################################
         # validate
         #################################
-        prec1 = validate(val_loader, model, criterion, optimizer, epoch, cfg)
+        prec1 = validate(val_loader, model, criterion, epoch, cfg)
 
         ##################################
         # save checkpoints
