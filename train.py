@@ -19,61 +19,41 @@ from torch.autograd import Variable
 from api import hdf5_fun
 from api import config_fun
 import train_helper
+from api import meter
 
 
 # os.environ['CUDA_VISIBLE_DEVICES'] = cfg.gpu_id
 
-def train(train_loader, model_gnet, criterion, optimizer, epoch, cfg):
+def train(train_loader, model, criterion, optimizer, epoch, cfg):
     """
     train for one epoch on the training set
     """
-    batch_time = utils.AverageMeter()
-    losses = utils.AverageMeter()
-    top1 = utils.AverageMeter()
-    #############################################
-    ## confusion table
-    #############################################
-    confusion = utils.ConfusionMatrix(40)
+    batch_time = meter.timemeter.TimeMeter()
+    losses = meter.averagevaluemeter.AverageValueMeter()
+    top1 = meter.averagevaluemeter.AverageValueMeter()
+    ap = meter.apmeter.APMeter()
 
     # training mode
-    model_gnet.train()
+    model.train()
 
     end = time.time()
-    for i, (inputs_12v, labels) in enumerate(train_loader):
-        # bz x 12 x 3 x 224 x 224
-        # re-view it to be : (bz * 12) x 3 x 224 x 224
-        # note that inputs_12v.size(2) = 1, so we expand it to be 3
-        inputs_12v = inputs_12v.view(inputs_12v.size(0) * inputs_12v.size(1), inputs_12v.size(2),
-                                     inputs_12v.size(3), inputs_12v.size(4))
-        labels = labels.long().view(-1)
-        if isinstance(inputs_12v, torch.ByteTensor):
-            inputs_12v = inputs_12v.float()
-        # # expanding: (bz * 12) x 3 x 224 x 224
-        #        inputs_12v = inputs_12v.expand(inputs_12v.size(0), 3,
-        #            inputs_12v.size(2), inputs_12v.size(3))
+    for i, (inputs_img, gt_labels) in enumerate(train_loader):
+        batch_time.reset()
+        if isinstance(inputs_img, torch.ByteTensor):
+            inputs_img = inputs_img.float()
+        gt_labels = gt_labels.long().view(-1)
+        inputs_img = Variable(inputs_img)
+        labels = Variable(gt_labels)
 
-        # byte tensor to float tensor
-        # normalize data here instead of using clouse in dataset class, because it is
-        # not format 12 x 1 x H x W in stead of C x H x W
-        #        mean =  223.03979492188
-        #        std = 1.0
-        #        inputs_12v = utils.preprocess(inputs_12v, mean, std, False) # False means not do data augmentation
-
-        inputs_12v = Variable(inputs_12v)
-        labels = Variable(labels)
-
-        # print(points.size())
-        # print(labels.size())
         # shift data to GPU
-        if cfg.cuda:
-            inputs_12v = inputs_12v.cuda()
-            #            labels = labels.long().cuda() # must be long cuda tensor
-            labels = labels.cuda()  # must be long cuda tensor
+        inputs_img = inputs_img.cuda()
+        #            labels = labels.long().cuda() # must be long cuda tensor
+        labels = labels.cuda()  # must be long cuda tensor
 
         # forward, backward optimize
         # (bz*12) X C x H x W
 
-        preds = model_gnet(inputs_12v)  # bz x C x H x W
+        preds = model(inputs_img)  # bz x C x H x W
         #        print('labels:\n', labels.data)
         #        print('preds:\n', preds.data)
         # in pytorch, unlike torch, the label is 0-indexed (start from 0)
@@ -114,8 +94,8 @@ def train(train_loader, model_gnet, criterion, optimizer, epoch, cfg):
         ## measure accuracy
         ###########################################
         prec1 = utils.accuracy(preds.data, labels.data, topk=(1,))[0]
-        losses.update(loss.data[0], preds.size(0))  # batchsize
-        top1.update(prec1[0], preds.size(0))
+        losses.add(loss.data[0], preds.size(0))  # batchsize
+        top1.add(prec1[0], preds.size(0))
 
         ###############################################
         ## confusion table
