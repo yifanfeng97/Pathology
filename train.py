@@ -110,10 +110,6 @@ def train(train_loader, model, criterion, optimizer, epoch, cfg):
             #     logger.histo_summary(log_pre_name+'train/' + tag, to_np(value), step)
             #     logger.histo_summary(log_pre_name+'train/' + tag + '/grad', to_np(value.grad), step)
             # # images
-    #####################################
-    ## confusion table
-    #####################################
-    # debug_here()
     print('mean class accuracy at epoch {0}: {1} '.format(epoch, confusion.value()))
 
 
