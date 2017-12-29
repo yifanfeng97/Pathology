@@ -237,7 +237,6 @@ def main():
         best_prec1 = optim_state['best_prec1']
         optimizer.load_state_dict(optim_state['optim_state_best'])
 
-    # cross entropy already contains logsoftmax
     criterion = nn.CrossEntropyLoss()
 
     print('shift model and criterion to GPU .. ')
