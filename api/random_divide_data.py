@@ -55,8 +55,6 @@ def _split_dataset(files, info, test_frac, val_num):
 def random_divide_data():
     # get configuration file
     cfg = config()
-    # check all folders exist
-    cfg.check_dirs()
 
     tumor_anno_files = glob.glob(os.path.join(cfg.tumor_anno_folder,
                                               '*.mask'))

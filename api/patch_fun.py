@@ -9,6 +9,7 @@ import numpy as np
 def _prepare_data(data, file_type, auto_save_patch = True):
     patches = []
     for idx, item in enumerate(tqdm(data)):
+        print('processing img: ' + item['data'][0])
         patch = []
         if 'tumor' in item['info']:
             patch = extract_patch_fun.extract(item, file_type, 'pos', auto_save_patch = auto_save_patch)
@@ -30,8 +31,8 @@ def generate_patch(auto_save_patch = True):
                                     item['info'] == 'train_normal', split_data)
     val_data   = filter(lambda item: item['info'] == 'val_tumor' or
                                     item['info'] == 'val_normal', split_data)
-    test_data  = filter(lambda item: item['info'] == 'test_tumor' or
-                                    item['info'] == 'test_normal', split_data)
+    # test_data  = filter(lambda item: item['info'] == 'test_tumor' or
+    #                                 item['info'] == 'test_normal', split_data)
 
     train_patch = _prepare_data(train_data, 'train', auto_save_patch = auto_save_patch)
     val_patch = _prepare_data(val_data, 'val', auto_save_patch = auto_save_patch)

@@ -30,7 +30,7 @@ class single_img_process():
 
         self._img = slide_fun.AllSlide(self._file_name)
         self._max_mask = None
-        self._max_mask_size = np.ceil(self._img.level_dimensions[0]/self._cfg.max_frac)
+        self._max_mask_size = np.ceil(np.array(self._img.level_dimensions[0])/self._cfg.max_frac).astype(np.int)
         self._max_mask_level = None
 
         self._min_patch_size = int(self._cfg.patch_size/self._cfg.min_frac)
@@ -112,7 +112,7 @@ class single_img_process():
 
         # init mask without background
         self._min_mask = None
-        self._min_mask_size = np.ceil(self._img.level_dimensions[0]/self._cfg.min_frac)
+        self._min_mask_size = np.ceil(np.array(self._img.level_dimensions[0])/self._cfg.min_frac).astype(np.int)
         self._min_mask_level = self._get_level(self._min_mask_size)
 
         self._max_mask_level = self._get_level(self._max_mask_size)
@@ -122,7 +122,7 @@ class single_img_process():
         th_img = th_img.resize(self._max_mask_size)
         th_mask = self._threshold_downsample_level(th_img)
 
-        assert self._max_mask_size == (th_mask.size[1], th_mask.size[0])
+        assert (self._max_mask_size[1], self._max_mask_size[0]) == th_mask.shape
 
         if self._mask_files is not None:
             selected_mask, tumor_mask = self._merge_mask_files()
@@ -137,44 +137,46 @@ class single_img_process():
         self._max_mask = Image.fromarray(self._max_mask)
         self._min_mask = self._max_mask.resize(self._min_mask_size)
         self._min_mask = np.asarray(self._min_mask)
+        self._max_mask = np.asarray(self._max_mask)
 
         if self._cfg.vis_ov_mask:
             raw_img = self._img.read_region((0, 0), self._min_mask_level, self._min_mask_size)
+            mask_img = np.zeros((raw_img.size[1], raw_img.size[0], 3), np.uint8)
+            mask_img = Image.fromarray(mask_img)
             mask = self._min_mask.copy()
-            assert raw_img.size == mask.shape
+            assert (raw_img.size[1], raw_img.size[0]) == mask.shape
 
-            img_mask = self._fusion_mask_img(raw_img, mask)
+            raw_mask_img = self._fusion_mask_img(raw_img, mask)
+            mask_img = self._fusion_mask_img(mask_img, mask)
 
-            mask = Image.fromarray(mask)
             raw_img.save(os.path.join(self._cfg.vis_ov_mask_folder, os.path.basename(
                 self._file_name)[:-4] + '_raw' + self._cfg.img_ext))
-            img_mask.save(os.path.join(self._cfg.vis_ov_mask_folder, os.path.basename(
+            raw_mask_img.save(os.path.join(self._cfg.vis_ov_mask_folder, os.path.basename(
                 self._file_name)[:-4] + '_raw_mask' + self._cfg.img_ext))
-            mask.save(os.path.join(self._cfg.vis_ov_mask_folder, os.path.basename(
+            mask_img.save(os.path.join(self._cfg.vis_ov_mask_folder, os.path.basename(
                 self._file_name)[:-4] + '_mask' + self._cfg.img_ext))
 
-            mask.close()
-            img_mask.close()
+            mask_img.close()
+            raw_mask_img.close()
             raw_img.close()
 
-    def _save_random_mask_and_patch(self, patches):
-        pass
 
     def _fusion_mask_img(self, img, mask):
         # mask type array
-        # img type Image
-        assert img.size == mask.shape
-        img_mask = img.copy()
+        # img type array
+        img_np = np.asarray(img)
+        assert (img.size[1], img.size[0]) == mask.shape
+        img_mask = img_np.copy()
         if (mask == TUMOR).any():
-            img_mask[mask == TUMOR] = self._cfg.alpha * img[mask == TUMOR] + \
+            img_mask[mask == TUMOR] = self._cfg.alpha * img_np[mask == TUMOR] + \
                                       (1 - self._cfg.alpha) * np.array(TUMOR_COLOR)
         if (mask == NORMAL).any():
-            img_mask[mask == NORMAL] = self._cfg.alpha * img[mask == NORMAL] + \
+            img_mask[mask == NORMAL] = self._cfg.alpha * img_np[mask == NORMAL] + \
                                        (1 - self._cfg.alpha) * np.array(NORMAL_COLOR)
         if (mask == SELECTED).any():
-            img_mask[mask == SELECTED] = self._cfg.alpha * img[mask == SELECTED] + \
+            img_mask[mask == SELECTED] = self._cfg.alpha * img_np[mask == SELECTED] + \
                                          (1 - self._cfg.alpha) * np.array(SELECTED_COLOR)
-        return img_mask
+        return Image.fromarray(img_mask)
 
     def _is_bg(self, origin):
         img = self._img.read_region(origin, 0, (self._cfg.patch_size, self._cfg.patch_size))
@@ -191,10 +193,11 @@ class single_img_process():
             return
         img = self._img.read_region(origin, 0, (self._cfg.patch_size, self._cfg.patch_size))
 
-        max_patch_origin = int(origin/self._cfg.max_frac)
+        max_patch_origin = (np.array(origin)/self._cfg.max_frac).astype(np.int)
         max_patch_size = int(self._cfg.patch_size/self._cfg.max_frac)
         mask = self._max_mask[max_patch_origin[0]: max_patch_origin[0] + max_patch_size,
                                 max_patch_origin[1]: max_patch_origin[1] + max_patch_size]
+        mask = Image.fromarray(mask)
         mask = mask.resize((self._cfg.patch_size, self._cfg.patch_size))
 
         mask = np.asarray(mask)
@@ -222,18 +225,19 @@ class single_img_process():
         for patch in patches:
             if cnt >= self._cfg.patch_num_in_train:
                 break
-            img = self._img.read_region(patch, 0, self._cfg.patch_size)
+            img = self._img.read_region(patch, 0, (self._cfg.patch_size, self._cfg.patch_size))
             folder_pre = None
             if self._file_type == 'train':
                 folder_pre = os.path.join(self._cfg.patch_save_folder, 'train')
             else:
                 folder_pre = os.path.join(self._cfg.patch_save_folder, 'val')
+            self._cfg.check_dir(folder_pre)
             if self._patch_type == 'pos':
                 folder_pre = os.path.join(folder_pre, 'pos')
             else:
                 folder_pre = os.path.join(folder_pre, 'neg')
+            self._cfg.check_dir(folder_pre)
 
-            config_fun.config.check_dir(folder_pre)
             img.save(os.path.join(folder_pre, os.path.basename(self._file_name)
                                   + '_%d_%d' % patch + self._cfg.img_ext))
             img.close()
@@ -242,7 +246,7 @@ class single_img_process():
     def _get_train_patch(self):
         do_bg_filter = False
         patches = {'pos': [], 'neg': []}
-        assert self._min_mask_size == self._min_mask.shape
+        assert self._min_mask_size[1], self._min_mask_size[0] == self._min_mask.shape
         num_row, num_col = self._min_mask_size
         num_row = num_row - self._min_patch_size
         num_col = num_col - self._min_patch_size
@@ -256,7 +260,7 @@ class single_img_process():
                 break
             min_patch = self._min_mask[row: row + self._min_patch_size,
                        col: col + self._min_patch_size]
-            origin = (col * self._cfg.min_frac, row * self._cfg.min_frac)
+            origin = (int(col * self._cfg.min_frac), int(row * self._cfg.min_frac))
 
             H, W = min_patch.shape
             H_min = int(np.ceil(H / 4))
