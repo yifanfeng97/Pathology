@@ -67,8 +67,8 @@ def h5_extract_data_label(img_size, file_name):
     data = None
     label = None
     with h5py.File(file_name) as f:
-        data = f['data']
-        label = f['label']
+        data = f['data'].value
+        label = f['label'].value
     return data.reshape(-1, img_size, img_size, 3), label
 
 class h5_dataloader(Dataset):
@@ -93,13 +93,13 @@ class h5_dataloader(Dataset):
                 self._data = np.concatenate((self._data, t_data), axis=0)
                 self._label = np.concatenate((self._label,t_label), axis=0)
                 del t_data, t_label
-        assert self._data.size(0) == self._label.size(0)
+        assert self._data.shape[0] == self._label.shape[0]
 
     def __getitem__(self, index):
         return self._compose(self._data[index]), self._label[index]
 
     def __len__(self):
-        return self._label.size(0)
+        return self._label.shape[0]
 
 
 if __name__ == '__main__':

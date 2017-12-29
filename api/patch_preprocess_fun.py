@@ -21,7 +21,7 @@ def get_compose():
                                      std=[0.229, 0.224, 0.225])
     compose = transforms.Compose([
         transforms.ToPILImage(),
-        transforms.RandomSizedCrop(input_size),
+        transforms.RandomResizedCrop(input_size),
         transforms.RandomHorizontalFlip(),
         transforms.ToTensor(),
         normalize,

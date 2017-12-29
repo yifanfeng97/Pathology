@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.utils.model_zoo as model_zoo
+import model_helper
 
 
 __all__ = ['Inception3', 'inception_v3']
@@ -24,7 +25,9 @@ def inception_v3(pretrained=False, **kwargs):
         if 'transform_input' not in kwargs:
             kwargs['transform_input'] = True
         model = Inception3(**kwargs)
-        model.load_state_dict(model_zoo.load_url(model_urls['inception_v3_google']))
+        pretrained_dict = model_zoo.load_url(model_urls['inception_v3_google'])
+        model = model_helper.get_not_fc_para(model, pretrained_dict)
+        # model.load_state_dict(model_zoo.load_url(model_urls['inception_v3_google']))
         return model
 
     return Inception3(**kwargs)
