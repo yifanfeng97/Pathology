@@ -35,3 +35,11 @@ def save_checkpoint(model, output_path):
     torch.save(model, output_path)
 
     print("Checkpoint saved to {}".format(output_path))
+
+# do gradient clip
+def clip_gradient(optimizer, grad_clip):
+    assert grad_clip>0, 'gradient clip value must be greater than 1'
+    for group in optimizer.param_groups:
+        for param in group['params']:
+            # gradient
+            param.grad.data.clamp_(-grad_clip, grad_clip)
