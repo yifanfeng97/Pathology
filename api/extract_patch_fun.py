@@ -120,6 +120,7 @@ class single_img_process():
         th_img = self._img.read_region((0, 0), self._max_mask_level,
                                       self._img.level_dimensions[self._max_mask_level])
         th_img = th_img.resize(self._max_mask_size)
+
         th_mask = self._threshold_downsample_level(th_img)
 
         assert (self._max_mask_size[1], self._max_mask_size[0]) == th_mask.shape
@@ -140,7 +141,10 @@ class single_img_process():
         self._max_mask = np.asarray(self._max_mask)
 
         if self._cfg.vis_ov_mask:
-            raw_img = self._img.read_region((0, 0), self._min_mask_level, self._min_mask_size)
+            raw_img = self._img.read_region((0, 0), self._min_mask_level,
+                                            self._img.level_dimensions[self._min_mask_level])
+            raw_img = raw_img.resize(self._min_mask_size)
+
             mask_img = np.zeros((raw_img.size[1], raw_img.size[0], 3), np.uint8)
             mask_img = Image.fromarray(mask_img)
             mask = self._min_mask.copy()

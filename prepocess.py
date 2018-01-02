@@ -13,7 +13,7 @@ if not os.path.exists(cfg.split_file) or cfg.redividing:
 else:
     print('find the split file, not execute random divide data!')
 
-if cfg.regenerate:
+if cfg.redividing or cfg.regenerate:
     print('generate patch~')
     patch_fun.generate_patch(auto_save_patch=True)
 else:
