@@ -4,7 +4,7 @@ import random
 import numpy as np
 import scipy.ndimage as ndimage
 from PIL import Image
-from skimage.morphology import dilation, star
+from skimage.morphology import dilation, star, opening, erosion
 from skimage.filters import threshold_otsu
 from itertools import product
 import os
@@ -14,9 +14,9 @@ SELECTED = 1
 NORMAL = 2
 TUMOR = 3
 
-SELECTED_COLOR = [0, 0, 255]
-NORMAL_COLOR = [0, 255, 0]
-TUMOR_COLOR = [255, 0, 0]
+SELECTED_COLOR = [0, 0, 255] # Blue
+NORMAL_COLOR = [0, 255, 0] # Green
+TUMOR_COLOR = [255, 0, 0] # Red
 
 
 class single_img_process():
@@ -58,17 +58,66 @@ class single_img_process():
 
         # dilate image and then threshold the image
         schannel = img_hsv_np[:, :, 1]
+        mask = np.zeros(schannel.shape)
         schannel = dilation(schannel, star(3))
         schannel = ndimage.gaussian_filter(schannel, sigma=(5, 5), order=0)
         threshold_global = threshold_otsu(schannel)
 
-        schannel[schannel > threshold_global] = SELECTED
-        schannel[schannel <= threshold_global] = BACKGROUND
+        # schannel[schannel > threshold_global] = 255
+        # schannel[schannel <= threshold_global] = 0
+        mask[schannel > threshold_global] = SELECTED
+        mask[schannel <= threshold_global] = BACKGROUND
 
         # import scipy.misc   # check the result
         # scipy.misc.imsave('outfile.jpg', schannel)
 
-        return schannel
+        return mask
+
+    def _seg_dfs(self, img):
+        img_np = np.asarray(img)
+        img_np_g = img_np[:, :, 1]
+        shape = img_np_g.shape
+        mask = np.ones(shape).astype(np.uint8)
+        searched = np.zeros((shape)).astype(np.uint8)
+        coor = []
+        init_val = 0
+
+        def inRange(val):
+            return val >= init_val - 10 and val <= init_val + 10
+
+        def addSeed_initVal():
+            sums = 0
+            for idx in range(shape[0]):
+                coor.append({'x': idx, 'y': 0})
+                searched[idx, 0] = 1
+                sums += img_np_g[idx, 0]
+            return sums / shape[0]
+
+        def isPixel(x, y):
+            return (x >= 0 and x < shape[0]) and (y >= 0 and y < shape[1])
+
+        def deal(x, y):
+            if isPixel(x, y) and not searched[x, y] and inRange(img_np_g[x, y]):
+                coor.append({'x': x, 'y': y})
+                searched[x, y] = 1
+                mask[x, y] = 0
+
+        init_val = addSeed_initVal()
+        print('init val: %d' % init_val)
+
+        while coor != []:
+            x = coor[0]['x']
+            y = coor[0]['y']
+            if x == 0: deal(x, y)
+            del coor[0]
+            deal(x + 1, y)
+            deal(x, y + 1)
+            deal(x - 1, y)
+            deal(x, y - 1)
+
+        mask = opening(mask, star(5))
+        mask = erosion(mask, star(3))
+        return mask
 
     def _merge_mask_files(self):
         selected_mask = np.zeros((self._max_mask_size[1], self._max_mask_size[0]), np.uint8)
@@ -122,6 +171,9 @@ class single_img_process():
         th_img = th_img.resize(self._max_mask_size)
 
         th_mask = self._threshold_downsample_level(th_img)
+        # Image.fromarray(th_mask * 255).show()
+        # th_img.save(os.path.join(self._cfg.vis_ov_mask_folder, os.path.basename(
+        #         self._file_name)[:-4] + '.png'))
 
         assert (self._max_mask_size[1], self._max_mask_size[0]) == th_mask.shape
 
@@ -192,15 +244,16 @@ class single_img_process():
             img.close()
             return False
 
-    def _save_random_patch(self, origin):
+    def _save_random_patch(self, origin, min_patch):
         if random.random()>self._cfg.vis_patch_prob:
             return
         img = self._img.read_region(origin, 0, (self._cfg.patch_size, self._cfg.patch_size))
 
-        max_patch_origin = (np.array(origin)/self._cfg.max_frac).astype(np.int)
-        max_patch_size = int(self._cfg.patch_size/self._cfg.max_frac)
-        mask = self._max_mask[max_patch_origin[0]: max_patch_origin[0] + max_patch_size,
-                                max_patch_origin[1]: max_patch_origin[1] + max_patch_size]
+        # max_patch_origin = (np.array(origin)/self._cfg.max_frac).astype(np.int)
+        # max_patch_size = int(self._cfg.patch_size/self._cfg.max_frac)
+        # mask = self._max_mask[max_patch_origin[0]: max_patch_origin[0] + max_patch_size,
+        #                         max_patch_origin[1]: max_patch_origin[1] + max_patch_size]
+        mask = min_patch
         mask = Image.fromarray(mask)
         mask = mask.resize((self._cfg.patch_size, self._cfg.patch_size))
 
@@ -277,7 +330,7 @@ class single_img_process():
                         if self._is_bg(origin):
                             continue
                     patches['pos'].append(origin)
-                    self._save_random_patch(origin)
+                    self._save_random_patch(origin, min_patch)
                     cnt+=1
 
             else:
@@ -286,7 +339,7 @@ class single_img_process():
                         if self._is_bg(origin):
                             continue
                     patches['neg'].append(origin)
-                    self._save_random_patch(origin)
+                    self._save_random_patch(origin, min_patch)
                     cnt+=1
         if self._auto_save_patch:
             self._save_patches(patches)
@@ -301,3 +354,6 @@ def extract(data, file_type, patch_type, auto_save_patch = True):
     img = single_img_process(data, file_type, patch_type, auto_save_patch)
     img._generate_mask()
     return img._get_train_patch()
+
+if __name__ == '__main__':
+    pass
