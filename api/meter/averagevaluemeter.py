@@ -7,13 +7,13 @@ class AverageValueMeter(meter.Meter):
         super(AverageValueMeter, self).__init__()
         self.reset()
 
-    def add(self, value, n = 1):
+    def add(self, value, n=1):
         self.sum += value * n
         self.var += (value * value) * n
-        self.n += n
+        self.count += n
 
     def value(self):
-        n = self.n
+        n = self.count
         if n == 0:
             mean, std = np.nan, np.nan
         elif n == 1:
@@ -25,6 +25,6 @@ class AverageValueMeter(meter.Meter):
 
     def reset(self):
         self.sum = 0.0
-        self.n = 0
+        self.count = 0
         self.var = 0.0
 

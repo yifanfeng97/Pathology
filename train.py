@@ -12,6 +12,7 @@ from api import hdf5_fun
 from api import config_fun
 import train_helper
 from api import meter
+import os
 
 
 # os.environ['CUDA_VISIBLE_DEVICES'] = cfg.gpu_id
@@ -21,18 +22,18 @@ def train(train_loader, model, criterion, optimizer, epoch, cfg):
     train for one epoch on the training set
     """
     batch_time = meter.timemeter.TimeMeter()
+    data_time = meter.timemeter.TimeMeter()
     losses = meter.averagevaluemeter.AverageValueMeter()
     # top1 = meter.averagevaluemeter.AverageValueMeter()
-    ap = meter.apmeter.APMeter()
-    confusion = meter.confusionmeter.ConfusionMeter(cfg.num_classes)
-    prec1 = meter.classerrormeter.ClassErrorMeter(accuracy=True)
+    # ap = meter.apmeter.APMeter()
+    # confusion = meter.confusionmeter.ConfusionMeter(cfg.num_classes)
+    prec = meter.classerrormeter.ClassErrorMeter(topk=[1], accuracy=True)
 
     # training mode
     model.train()
 
     for i, (inputs_img, gt_labels) in enumerate(train_loader):
         batch_time.reset()
-        prec1.reset()
         if isinstance(inputs_img, torch.ByteTensor):
             inputs_img = inputs_img.float()
         gt_labels = gt_labels.long().view(-1)
@@ -57,14 +58,14 @@ def train(train_loader, model, criterion, optimizer, epoch, cfg):
         ###########################################
         ## measure accuracy
         ###########################################
-        prec1.add(preds.data, gt_labels.data)
+        prec.add(preds.data, gt_labels.data)
         losses.add(loss.data[0], preds.size(0))  # batchsize
         # top1.add(prec1[0], preds.size(0))
 
         ###############################################
         ## confusion table
         ###############################################
-        confusion.add(preds.data, gt_labels.data)
+        # confusion.add(preds.data, gt_labels.data)
 
         ###########################################
         ## backward
@@ -77,10 +78,12 @@ def train(train_loader, model, criterion, optimizer, epoch, cfg):
         # debug_here()
         if i % cfg.print_freq == 0:
             print('Epoch: [{0}][{1}/{2}]\t'
-                  'Time {3} \t'
-                  'Loss {4}\t'.format(
-                epoch, i, len(train_loader), batch_time.value(),
-                losses.value()))
+                  'Batch Time {batch_time:.3f}\t'
+                  'Epoch Time {data_time:.3f}\t'
+                  'Loss {loss:.4f} \t'
+                  'Prec@1 {top1:.3f}\t'.format(
+                epoch, i, len(train_loader), batch_time=batch_time.value(),
+                data_time=data_time.value(), loss=losses.value()[0], top1=prec.value(1)))
         # if i % cfg.print_freq == 0:
         #     print('Epoch: [{0}][{1}/{2}]\t'
         #           'Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
@@ -110,7 +113,8 @@ def train(train_loader, model, criterion, optimizer, epoch, cfg):
             #     logger.histo_summary(log_pre_name+'train/' + tag, to_np(value), step)
             #     logger.histo_summary(log_pre_name+'train/' + tag + '/grad', to_np(value.grad), step)
             # # images
-    print('mean class accuracy at epoch {0}: {1} '.format(epoch, confusion.value()))
+    print('mean class accuracy at epoch {0}: \t'
+          'top1:{1}\t'.format(epoch, prec.value(1)))
 
 
 def validate(val_loader, model, criterion, epoch, cfg):
@@ -118,11 +122,12 @@ def validate(val_loader, model, criterion, epoch, cfg):
     test for one epoch on the testing set
     """
     batch_time = meter.timemeter.TimeMeter()
+    data_time = meter.timemeter.TimeMeter()
     losses = meter.averagevaluemeter.AverageValueMeter()
     # top1 = meter.averagevaluemeter.AverageValueMeter()
-    ap = meter.apmeter.APMeter()
-    confusion = meter.confusionmeter.ConfusionMeter(cfg.num_classes)
-    prec1 = meter.classerrormeter.ClassErrorMeter(accuracy=True)
+    # ap = meter.apmeter.APMeter()
+    # confusion = meter.confusionmeter.ConfusionMeter(cfg.num_classes)
+    prec = meter.classerrormeter.ClassErrorMeter(topk=[1], accuracy=True)
 
 
     # training mode
@@ -130,7 +135,6 @@ def validate(val_loader, model, criterion, epoch, cfg):
 
     for i, (input_img, gt_labels) in enumerate(val_loader):
         batch_time.reset()
-        prec1.reset()
 
         if isinstance(input_img, torch.ByteTensor):
             input_img = input_img.float()
@@ -155,25 +159,26 @@ def validate(val_loader, model, criterion, epoch, cfg):
         ###########################################
         ## measure accuracy
         ###########################################
-        prec1.add(preds.data, gt_labels.data)
+        prec.add(preds.data, gt_labels.data)
         losses.add(loss.data[0], preds.size(0))  # batchsize
         # top1.add(prec1.value(), preds.size(0))
 
         ###############################################
         ## confusion table
         ###############################################
-        confusion.add(preds.data, gt_labels.data)
+        # confusion.add(preds.data, gt_labels.data)
 
         # measure elapsed time
 
         if i % cfg.print_freq == 0:
-            print('Test: [{0}/{1}]\t'
-                  'Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
-                  'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
-                  'Prec@1 {top1.val:.3f} ({top1.avg:.3f})'.format(
-                i, len(val_loader), batch_time=batch_time.value(), loss=losses.value(),
-                top1=1))
-            # ###########################################
+            print('Epoch: [{0}][{1}/{2}]\t'
+                  'Batch Time {batch_time:.3f}\t'
+                  'Epoch Time {data_time:.3f}\t'
+                  'Loss {loss:.4f} \t'
+                  'Prec@1 {top1:.3f}\t'.format(
+                epoch, i, len(val_loader), batch_time=batch_time.value(),
+                data_time=data_time.value(), loss=losses.value()[0], top1=prec.value(1)))
+        # ###########################################
             # ## Log
             # ###########################################
             # # loss accuracy
@@ -189,13 +194,14 @@ def validate(val_loader, model, criterion, epoch, cfg):
             #     logger.histo_summary(log_pre_name+'test/'+tag, to_np(value), step)
             # # images
 
-    print(' * Prec@1 {top1.avg:.3f}'.format(top1=1))
+    # print(' * Prec@1 {top1.avg:.3f}'.format(top1=1))
 
-    print('mean class accuracy at epoch {0}: {1} '.format(epoch, confusion.value()))
+    print('mean class accuracy at epoch {0}: \t'
+          'top1:{1}\t'.format(epoch, prec.value(1)))
 
     # print(tested_samples)
     # return top1.value()
-    return 1
+    return prec.value(1)
 
 
 def main():
@@ -261,14 +267,16 @@ def main():
         ##################################
         if best_prec1 < prec1:
             best_prec1 = prec1
-            path_checkpoint = '{0}/{1}/model_param.pth'.format(cfg.checkpoint_folder, epoch)
+            path_checkpoint = os.path.join(cfg.checkpoint_folder, 'model_param.pth')
+            # path_checkpoint = '{0}/{1}/model_param.pth'.format(cfg.checkpoint_folder, epoch)
             checkpoint = {}
             checkpoint['model_param'] = model.state_dict()
 
             train_helper.save_checkpoint(checkpoint, path_checkpoint)
 
             # save optim state
-            path_optim_state = '{0}/{1}/optim_state_best.pth'.format(cfg.checkpoint_folder, epoch)
+            path_optim_state = os.path.join(cfg.checkpoint_folder, 'optim_state_best.pth')
+            # path_optim_state = '{0}/{1}/optim_state_best.pth'.format(cfg.checkpoint_folder, epoch)
             optim_state = {}
             optim_state['epoch'] = epoch  # because epoch starts from 0
             optim_state['best_prec1'] = best_prec1
