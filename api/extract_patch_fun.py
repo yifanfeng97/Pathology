@@ -170,7 +170,8 @@ class single_img_process():
                                       self._img.level_dimensions[self._max_mask_level])
         th_img = th_img.resize(self._max_mask_size)
 
-        th_mask = self._threshold_downsample_level(th_img)
+        # th_mask = self._threshold_downsample_level(th_img)
+        th_mask = self._seg_dfs(th_img)
         # Image.fromarray(th_mask * 255).show()
         # th_img.save(os.path.join(self._cfg.vis_ov_mask_folder, os.path.basename(
         #         self._file_name)[:-4] + '.png'))
@@ -324,8 +325,10 @@ class single_img_process():
             H_max = int(np.ceil(H / 4 * 3))
             W_min = int(np.ceil(W / 4))
             W_max = int(np.ceil(W / 4 * 3))
-            if np.count_nonzero(min_patch[H_min:H_max, W_min:W_max] == TUMOR)>0:
-                if self._patch_type == 'pos':
+            # half of the center
+            th_num = int(np.ceil((H/2 * W/2) /2))
+            if self._patch_type == 'pos':
+                if np.count_nonzero(min_patch[H_min:H_max, W_min:W_max] == TUMOR) > th_num:
                     if do_bg_filter:
                         if self._is_bg(origin):
                             continue
@@ -333,8 +336,8 @@ class single_img_process():
                     self._save_random_patch(origin, min_patch)
                     cnt+=1
 
-            else:
-                if self._patch_type == 'neg':
+            if self._patch_type == 'neg':
+                if np.count_nonzero(min_patch[H_min:H_max, W_min:W_max] == NORMAL) > th_num:
                     if do_bg_filter:
                         if self._is_bg(origin):
                             continue

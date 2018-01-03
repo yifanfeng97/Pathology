@@ -83,8 +83,8 @@ def seg(img):
         deal(x-1, y)
         deal(x, y-1)
 
-    # mask = opening(mask, star(5))
-    # mask = erosion(mask, star(3))
+    mask = opening(mask, star(5))
+    mask = erosion(mask, star(3))
     return mask
 
 if __name__ == '__main__':
