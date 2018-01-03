@@ -296,7 +296,7 @@ class single_img_process():
                 folder_pre = os.path.join(folder_pre, 'neg')
             self._cfg.check_dir(folder_pre)
 
-            img.save(os.path.join(folder_pre, os.path.basename(self._file_name)
+            img.save(os.path.join(folder_pre, os.path.basename(self._file_name)[:-4]
                                   + '_%d_%d' % patch + self._cfg.img_ext))
             img.close()
             cnt +=1

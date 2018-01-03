@@ -26,6 +26,7 @@ class config():
         self.vis_pos_patch_folder = cfg.get('PREPROCESS', 'vis_pos_patch_folder')
         self.vis_neg_patch_folder = cfg.get('PREPROCESS', 'vis_neg_patch_folder')
         self.patch_save_folder = cfg.get('PREPROCESS', 'patch_save_folder')
+        self.vis_hdf5_folder = cfg.get('PREPROCESS', 'vis_hdf5_folder')
 
         ### number
         self.val_normal = cfg.getint('PREPROCESS', 'val_normal')
@@ -38,6 +39,7 @@ class config():
         self.max_frac = cfg.getfloat('PREPROCESS', 'max_frac')
         self.min_frac = cfg.getfloat('PREPROCESS', 'min_frac')
         self.vis_patch_prob = cfg.getfloat('PREPROCESS', 'vis_patch_prob')
+        self.vis_hdf5_prob = cfg.getfloat('PREPROCESS', 'vis_hdf5_prob')
 
         ### files
         self.split_file = cfg.get('PREPROCESS', 'split_file')
@@ -91,11 +93,12 @@ class config():
         self.check_dir(self.vis_pos_patch_folder)
         self.check_dir(self.vis_neg_patch_folder)
         self.check_dir(self.patch_save_folder)
+        self.check_dir(self.patch_save_folder)
         # TRAIN
         self.check_dir(self.train_folder)
         self.check_dir(self.patch_coor_folder)
         self.check_dir(self.patch_hdf5_folder)
-        self.check_dir(self.checkpoint_folder)
+        self.check_dir(self.vis_hdf5_folder)
         # self.check_dir()
         # self.check_dir()
 
