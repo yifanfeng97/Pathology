@@ -106,7 +106,7 @@ class h5_dataloader(Dataset):
         cfg = config_fun.config()
         self._raw_size = cfg.patch_size
         self._train = train
-        self._compose = patch_preprocess_fun.get_compose()
+        self._compose = patch_preprocess_fun.get_train_val_compose()
         # file_names = []
         # if self._train:
         #     file_names = glob.glob(cfg.patch_hdf5_train_file_pre + '*')
