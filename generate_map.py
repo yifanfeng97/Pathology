@@ -21,15 +21,15 @@ for s in f.readlines():
     b_map_img_dir = save_dir_pre + '_b_map_img' + cfg.img_ext
     p_map_img_dir = save_dir_pre + '_p_map_img' + cfg.img_ext
 
-    b_map_npy_dir = save_dir_pre + '_b_map_img'
-    p_map_npy_dir = save_dir_pre + '_p_map_img'
+    b_map_npy_dir = save_dir_pre + '_b_map_img' + '.npy'
+    p_map_npy_dir = save_dir_pre + '_p_map_img' + '.npy'
 
     np.savetxt(b_map_npy_dir, b_map)
     np.savetxt(p_map_npy_dir, p_map)
 
     raw_img.save(raw_img_dir)
-    # Image.fromarray(p_map).save(p_map_img_dir)
-    Image.fromarray(b_map).save(b_map_img_dir)
+    Image.fromarray((np.abs(p_map)*255).astype(np.uint8)).save(p_map_img_dir)
+    Image.fromarray(b_map*255).save(b_map_img_dir)
 
     raw_img.close()
 

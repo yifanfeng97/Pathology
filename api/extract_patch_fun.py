@@ -173,8 +173,8 @@ class single_img_process():
         # init mask without background
         self._min_mask = None
         self._min_mask_size = np.ceil(np.array(self._img.level_dimensions[0])/self._cfg.min_frac).astype(np.int)
-        self._min_mask_size = (np.ceil(self._img.level_dimensions[0][0] / self._cfg.min_frac),
-                               np.ceil(self._img.level_dimensions[0][1] / self._cfg.min_frac))
+        self._min_mask_size = (int(np.ceil(self._img.level_dimensions[0][0] / self._cfg.min_frac)),
+                               int(np.ceil(self._img.level_dimensions[0][1] / self._cfg.min_frac)))
         self._min_mask_level = self._get_level(self._min_mask_size)
 
         th_img, th_mask = self._generate_img_bg_mask()
