@@ -79,6 +79,9 @@ class config():
         self.gpu_id = [int(id) for id in self.gpu_id.split(', ')]
         self.resume_training = cfg.getboolean('TRAIN', 'resume_training')
 
+        # GENERATE MAP
+        self.gm_foder = cfg.get('GENERATE_MAP', 'gm_foder')
+
         self.check_dirs()
 
     def check_dirs(self):
@@ -99,8 +102,8 @@ class config():
         self.check_dir(self.patch_coor_folder)
         self.check_dir(self.patch_hdf5_folder)
         self.check_dir(self.vis_hdf5_folder)
-        # self.check_dir()
-        # self.check_dir()
+        # GENERATE MAP
+        self.check_dir(self.gm_foder)
 
     def check_dir(self, dir):
         if not os.path.exists(dir):
