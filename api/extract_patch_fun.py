@@ -103,7 +103,7 @@ class single_img_process():
                 mask[x, y] = 0
 
         init_val = addSeed_initVal()
-        print('init val: %d' % init_val)
+        # print('init val: %d' % init_val)
 
         while coor != []:
             x = coor[0]['x']

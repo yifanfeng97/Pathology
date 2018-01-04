@@ -11,7 +11,9 @@ model = train_helper.get_model(cfg, load_param_from_folder=True)
 f = open(cfg.test_file, 'r')
 for s in f.readlines():
     file_name, label = s.split()
-    raw_img, p_map, b_map = prob_map.generate_prob_map(cfg, model, file_name)
+    print('processing ' + file_name)
+
+    raw_img, b_map, p_map = prob_map.generate_prob_map(cfg, model, file_name)
 
     save_dir_pre = os.path.join(cfg.gm_foder,
                                 os.path.basename(file_name).split('.')[0])
@@ -22,10 +24,13 @@ for s in f.readlines():
     b_map_npy_dir = save_dir_pre + '_b_map_img'
     p_map_npy_dir = save_dir_pre + '_p_map_img'
 
+    np.savetxt(b_map_npy_dir, b_map)
+    np.savetxt(p_map_npy_dir, p_map)
+
     raw_img.save(raw_img_dir)
     # Image.fromarray(p_map).save(p_map_img_dir)
     Image.fromarray(b_map).save(b_map_img_dir)
 
-    np.savetxt(b_map_npy_dir, b_map)
-    np.savetxt(p_map_npy_dir, p_map)
+    raw_img.close()
+
 
