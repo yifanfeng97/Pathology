@@ -104,25 +104,9 @@ def get_all_data_label_name(cfg, train):
 class h5_dataloader(Dataset):
     def __init__(self, train = True):
         cfg = config_fun.config()
-        self._raw_size = cfg.patch_size
+        # self._raw_size = cfg.patch_size
         self._train = train
         self._compose = patch_preprocess_fun.get_train_val_compose()
-        # file_names = []
-        # if self._train:
-        #     file_names = glob.glob(cfg.patch_hdf5_train_file_pre + '*')
-        # else:
-        #     file_names = glob.glob(cfg.patch_hdf5_val_file_pre + '*')
-        #
-        # self._data = None
-        # self._label = None
-        # for file_name in file_names:
-        #     if self._data is None:
-        #         self._data, self._label = h5_extract_data_label_name(self._raw_size, file_name)
-        #     else:
-        #         t_data, t_label = h5_extract_data_label_name(self._raw_size, file_name)
-        #         self._data = np.concatenate((self._data, t_data), axis=0)
-        #         self._label = np.concatenate((self._label,t_label), axis=0)
-        #         del t_data, t_label
         self._data, self._label, self._name = get_all_data_label_name(cfg, train=train)
         assert self._data.shape[0] == self._label.shape[0]
 

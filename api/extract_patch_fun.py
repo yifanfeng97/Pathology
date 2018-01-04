@@ -20,10 +20,10 @@ TUMOR_COLOR = [255, 0, 0] # Red
 
 
 class single_img_process():
-    def __init__(self, data, file_type, patch_type, auto_save_patch = True):
+    def __init__(self, file_name, mask_files, file_type, patch_type, auto_save_patch = True):
         self._cfg = config_fun.config()
-        self._file_name = data['data'][0]
-        self._mask_files = data['data'][1]
+        self._file_name = file_name
+        self._mask_files = mask_files
         self._auto_save_patch = auto_save_patch
         self._file_type = file_type
         self._patch_type = patch_type
@@ -157,21 +157,29 @@ class single_img_process():
                         new_origin[0]: new_size[0] + new_origin[0]] = new_mask
         return selected_mask, tumor_mask
 
+    def _generate_img_bg_mask(self):
+        self._max_mask_level = self._get_level(self._max_mask_size)
+        self._max_mask = np.zeros((self._max_mask_size[1], self._max_mask_size[0]), np.uint8)
+        th_img = self._img.read_region((0, 0), self._max_mask_level,
+                                       self._img.level_dimensions[self._max_mask_level])
+        th_img = th_img.resize(self._max_mask_size)
+        # th_mask = self._threshold_downsample_level(th_img)
+        th_mask = self._seg_dfs(th_img)
+
+        return th_img, th_mask
+
     def _generate_mask(self):
 
         # init mask without background
         self._min_mask = None
         self._min_mask_size = np.ceil(np.array(self._img.level_dimensions[0])/self._cfg.min_frac).astype(np.int)
+        self._min_mask_size = (np.ceil(self._img.level_dimensions[0][0] / self._cfg.min_frac),
+                               np.ceil(self._img.level_dimensions[0][1] / self._cfg.min_frac))
         self._min_mask_level = self._get_level(self._min_mask_size)
 
-        self._max_mask_level = self._get_level(self._max_mask_size)
-        self._max_mask = np.zeros((self._max_mask_size[1], self._max_mask_size[0]), np.uint8)
-        th_img = self._img.read_region((0, 0), self._max_mask_level,
-                                      self._img.level_dimensions[self._max_mask_level])
-        th_img = th_img.resize(self._max_mask_size)
+        th_img, th_mask = self._generate_img_bg_mask()
+        th_img.close()
 
-        # th_mask = self._threshold_downsample_level(th_img)
-        th_mask = self._seg_dfs(th_img)
         # Image.fromarray(th_mask * 255).show()
         # th_img.save(os.path.join(self._cfg.vis_ov_mask_folder, os.path.basename(
         #         self._file_name)[:-4] + '.png'))
@@ -354,7 +362,7 @@ class single_img_process():
 
 
 def extract(data, file_type, patch_type, auto_save_patch = True):
-    img = single_img_process(data, file_type, patch_type, auto_save_patch)
+    img = single_img_process(data['data'][0], data['data'][1], file_type, patch_type, auto_save_patch)
     img._generate_mask()
     return img._get_train_patch()
 

@@ -16,7 +16,7 @@ def _prepare_data(data, file_type, auto_save_patch = True):
         else:
             patch = extract_patch_fun.extract(item, file_type, 'neg', auto_save_patch = auto_save_patch)
         patches.append({'data': item['data'][0],
-                        'info': item['info'], 'patch':patch})
+                        'info': item['info'], 'patch': patch})
         print('get patches from %s, pos:%d, neg:%d\n'%
               (os.path.basename(item['data'][0]), len(patch['pos']), len(patch['neg'])))
     return patches

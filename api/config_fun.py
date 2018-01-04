@@ -81,6 +81,9 @@ class config():
 
         # GENERATE MAP
         self.gm_foder = cfg.get('GENERATE_MAP', 'gm_foder')
+        self.gm_stride = cfg.getint('GENERATE_MAP', 'gm_stride')
+        self.gm_batch_size = cfg.getint('GENERATE_MAP', 'gm_batch_size')
+        self.gm_work_num = cfg.getint('GENERATE_MAP', 'gm_work_num')
 
         self.check_dirs()
 
