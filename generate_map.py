@@ -12,6 +12,9 @@ model = train_helper.get_model(cfg, load_param_from_folder=True)
 model = torch.nn.DataParallel(model, device_ids=cfg.gpu_id)
 model.cuda()
 
+def norm(p):
+    return ((p-p.min())/(p.max()-p.min()))
+
 f = open(cfg.test_file, 'r')
 for s in f.readlines():
     file_name, label = s.split('*')
@@ -32,7 +35,7 @@ for s in f.readlines():
     np.savetxt(p_map_npy_dir, p_map)
 
     raw_img.save(raw_img_dir)
-    Image.fromarray((np.abs(p_map)*255).astype(np.uint8)).save(p_map_img_dir)
+    Image.fromarray((p_map*255).astype(np.uint8)).save(p_map_img_dir)
     Image.fromarray(b_map*255).save(b_map_img_dir)
 
     raw_img.close()

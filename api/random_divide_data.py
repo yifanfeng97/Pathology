@@ -126,9 +126,9 @@ def random_divide_data():
 
     with open(cfg.test_file, 'w') as f:
         for item in test_tumor_files:
-            f.write(item['data'][0]+ ' 1' + '\n')
+            f.write(item['data'][0]+ '*1' + '\n')
         for item in test_normal_files:
-            f.write(item['data'][0]+ ' 0' + '\n')
+            f.write(item['data'][0]+ '*0' + '\n')
 
 if __name__ == '__main__':
     random_divide_data()

@@ -49,9 +49,11 @@ class gmDataLoader(Dataset):
 def _get_label_prob(data_loader, model):
     output = None
     # model.cuda()
+    softmax = torch.nn.Softmax()
     for i, inputs_img in enumerate(tqdm(data_loader)):
         inputs_img = Variable(inputs_img).cuda()
         preds = model(inputs_img)
+        preds = softmax(preds)
         if output is None:
             output = preds.data.cpu().squeeze().numpy()
         else:
