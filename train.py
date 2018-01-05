@@ -184,6 +184,10 @@ def main():
     print('model: ')
     print(model)
 
+    # multiple gpu
+    model = torch.nn.DataParallel(model, device_ids=cfg.gpu_id)
+    model.cuda()
+
     # optimizer
     optimizer = optim.SGD(model.parameters(), cfg.lr,
                           momentum=cfg.momentum,

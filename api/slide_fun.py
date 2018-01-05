@@ -1,4 +1,7 @@
 from openslide import AbstractSlide
+import sys
+sys.path.append('../')
+import kfbslide
 import openslide
 
 
@@ -9,7 +12,7 @@ class AllSlide(AbstractSlide):
         if filename.endswith('.svs'):
             self._osr = openslide.open_slide(filename)
         elif filename.endswith('.kfb'):
-            pass
+            self._osr = kfbslide.KfbSlide(filename)
         else:
             print('not support ', filename.split('.')[-1], '!')
 

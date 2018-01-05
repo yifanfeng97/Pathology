@@ -48,7 +48,7 @@ class gmDataLoader(Dataset):
 
 def _get_label_prob(data_loader, model):
     output = None
-    model.cuda()
+    # model.cuda()
     for i, inputs_img in enumerate(tqdm(data_loader)):
         inputs_img = Variable(inputs_img).cuda()
         preds = model(inputs_img)

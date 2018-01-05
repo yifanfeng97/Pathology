@@ -3,14 +3,18 @@ from api import prob_map
 import numpy as np
 import train_helper
 import os
+import torch
 from PIL import Image
 
 cfg = config_fun.config()
 model = train_helper.get_model(cfg, load_param_from_folder=True)
 
+model = torch.nn.DataParallel(model, device_ids=cfg.gpu_id)
+model.cuda()
+
 f = open(cfg.test_file, 'r')
 for s in f.readlines():
-    file_name, label = s.split()
+    file_name, label = s.split('*')
     print('processing ' + file_name)
 
     raw_img, b_map, p_map = prob_map.generate_prob_map(cfg, model, file_name)
