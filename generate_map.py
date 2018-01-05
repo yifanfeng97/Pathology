@@ -25,8 +25,8 @@ for s in f.readlines():
     b_map_img_dir = save_dir_pre + '_b_map_img' + cfg.img_ext
     p_map_img_dir = save_dir_pre + '_p_map_img' + cfg.img_ext
 
-    b_map_npy_dir = save_dir_pre + '_b_map_img' + '.npy'
-    p_map_npy_dir = save_dir_pre + '_p_map_img' + '.npy'
+    b_map_npy_dir = save_dir_pre + '_b_map_img' + '.txt'
+    p_map_npy_dir = save_dir_pre + '_p_map_img' + '.txt'
 
     np.savetxt(b_map_npy_dir, b_map)
     np.savetxt(p_map_npy_dir, p_map)
