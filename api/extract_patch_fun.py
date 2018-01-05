@@ -86,12 +86,26 @@ class single_img_process():
             return val >= init_val - 10 and val <= init_val + 10
 
         def addSeed_initVal():
-            sums = 0
+            val1 = img_np_g[:, 0].mean()
+            val2 = img_np_g[0, :].mean()
+            val3 = img_np_g[:, shape[1]-1].mean()
+            val4 = img_np_g[shape[0]-1, 0].mean()
+            val = np.max((val1, val2, val3, val4))
             for idx in range(shape[0]):
+                # L
                 coor.append({'x': idx, 'y': 0})
                 searched[idx, 0] = 1
-                sums += img_np_g[idx, 0]
-            return sums / shape[0]
+                # R
+                coor.append({'x': idx, 'y': shape[1]-1})
+                searched[idx, shape[1]-1] = 1
+            for idx in range(shape[1]):
+                # U
+                coor.append({'x': 0, 'y': idx})
+                searched[0, idx] = 1
+                # D
+                coor.append({'x': shape[0]-1, 'y': idx})
+                searched[shape[0]-1, idx] = 1
+            return val
 
         def isPixel(x, y):
             return (x >= 0 and x < shape[0]) and (y >= 0 and y < shape[1])
@@ -108,7 +122,9 @@ class single_img_process():
         while coor != []:
             x = coor[0]['x']
             y = coor[0]['y']
-            if x == 0: deal(x, y)
+            if x == 0 or y == 0\
+                or x == shape[0]-1 or y == shape[1]-1:
+                deal(x, y)
             del coor[0]
             deal(x + 1, y)
             deal(x, y + 1)
