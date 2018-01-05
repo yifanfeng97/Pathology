@@ -24,4 +24,4 @@ hdf5_fun.convert_patch_to_hdf5()
 # vis the packaged hdf5 file
 hdf5_fun.random_vis_hdf5()
 
-train.main()
+# train.main()

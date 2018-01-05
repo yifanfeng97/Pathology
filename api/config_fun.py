@@ -103,6 +103,7 @@ class config():
         # TRAIN
         self.check_dir(self.train_folder)
         self.check_dir(self.patch_coor_folder)
+        self.check_dir(self.checkpoint_folder)
         self.check_dir(self.patch_hdf5_folder)
         self.check_dir(self.vis_hdf5_folder)
         # GENERATE MAP
