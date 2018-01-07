@@ -212,23 +212,23 @@ def main():
 
     for epoch in range(resume_epoch, cfg.max_epoch):
 
-        train_loader0 = train_helper.get_data(True, 0)
-        train(train_loader0, model, criterion, optimizer, epoch, cfg)
-        del train_loader0
+        train_loader = train_helper.get_data(True, 0)
+        train(train_loader, model, criterion, optimizer, epoch, cfg)
+        del train_loader
 
-        train_loader1 = train_helper.get_data(True, 1)
-        train(train_loader1, model, criterion, optimizer, epoch, cfg)
-        del train_loader1
+        train_loader = train_helper.get_data(True, 1)
+        train(train_loader, model, criterion, optimizer, epoch, cfg)
+        del train_loader
 
-        val_loader0 = train_helper.get_data(False, 0)
-        prec1_0 = validate(val_loader0, model, criterion, epoch, cfg)
-        del val_loader0
+        val_loader = train_helper.get_data(False, 0)
+        prec1_0 = validate(val_loader, model, criterion, epoch, cfg)
+        del val_loader
 
-        val_loader1 = train_helper.get_data(False, 1)
-        prec1_1 = validate(val_loader1, model, criterion, epoch, cfg)
-        del val_loader1
+        val_loader = train_helper.get_data(False, 1)
+        prec1_1 = validate(val_loader, model, criterion, epoch, cfg)
+        del val_loader
 
-        prec1 = np.max(prec1_0, prec1_1)
+        prec1 = np.mean(prec1_0, prec1_1)
         if best_prec1 < prec1:
             # save checkpoints
             best_prec1 = prec1
