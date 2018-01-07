@@ -224,7 +224,7 @@ def main():
         prec1_0 = validate(val_loader0, model, criterion, epoch, cfg)
         del val_loader0
 
-        val_loader1 = train_helper.get_data(False, 0)
+        val_loader1 = train_helper.get_data(False, 1)
         prec1_1 = validate(val_loader1, model, criterion, epoch, cfg)
         del val_loader1
 
