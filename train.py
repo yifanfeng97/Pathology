@@ -165,9 +165,9 @@ def main():
     # train_dataset = hdf5_fun.h5_dataloader(train=True)
     # val_dataset = hdf5_fun.h5_dataloader(train=False)
 
-    print('number of train samples is: ', len(train_dataset))
-    print('number of test samples is: ', len(val_dataset))
-    print('finished loading data')
+    # print('number of train samples is: ', len(train_dataset))
+    # print('number of test samples is: ', len(val_dataset))
+    # print('finished loading data')
     best_prec1 = 0
     # only used when we resume training from some checkpoint model
     resume_epoch = 0
