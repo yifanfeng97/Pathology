@@ -13,6 +13,7 @@ from api import config_fun
 import train_helper
 from api import meter
 import os
+import numpy as np
 
 
 # os.environ['CUDA_VISIBLE_DEVICES'] = cfg.gpu_id
@@ -161,8 +162,8 @@ def validate(val_loader, model, criterion, epoch, cfg):
 def main():
     cfg = config_fun.config()
 
-    train_dataset = hdf5_fun.h5_dataloader(train=True)
-    val_dataset = hdf5_fun.h5_dataloader(train=False)
+    # train_dataset = hdf5_fun.h5_dataloader(train=True)
+    # val_dataset = hdf5_fun.h5_dataloader(train=False)
 
     print('number of train samples is: ', len(train_dataset))
     print('number of test samples is: ', len(val_dataset))
@@ -170,11 +171,11 @@ def main():
     best_prec1 = 0
     # only used when we resume training from some checkpoint model
     resume_epoch = 0
-    # train data loader
-    train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=cfg.batch_size,
-                                               shuffle=True, num_workers=int(cfg.workers))
-    val_loader = torch.utils.data.DataLoader(val_dataset, batch_size=cfg.batch_size,
-                                              shuffle=True, num_workers=int(cfg.workers))
+    # # train data loader
+    # train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=cfg.batch_size,
+    #                                            shuffle=True, num_workers=int(cfg.workers))
+    # val_loader = torch.utils.data.DataLoader(val_dataset, batch_size=cfg.batch_size,
+    #                                           shuffle=True, num_workers=int(cfg.workers))
 
     if not cfg.resume_training:
         model = train_helper.get_model(cfg, pretrained=cfg.model_pretrain)
@@ -211,10 +212,23 @@ def main():
 
     for epoch in range(resume_epoch, cfg.max_epoch):
 
-        train(train_loader, model, criterion, optimizer, epoch, cfg)
+        train_loader0 = train_helper.get_data(True, 0)
+        train(train_loader0, model, criterion, optimizer, epoch, cfg)
+        del train_loader0
 
-        prec1 = validate(val_loader, model, criterion, epoch, cfg)
+        train_loader1 = train_helper.get_data(True, 1)
+        train(train_loader1, model, criterion, optimizer, epoch, cfg)
+        del train_loader1
 
+        val_loader0 = train_helper.get_data(False, 0)
+        prec1_0 = validate(val_loader0, model, criterion, epoch, cfg)
+        del val_loader0
+
+        val_loader1 = train_helper.get_data(False, 0)
+        prec1_1 = validate(val_loader1, model, criterion, epoch, cfg)
+        del val_loader1
+
+        prec1 = np.max(prec1_0, prec1_1)
         if best_prec1 < prec1:
             # save checkpoints
             best_prec1 = prec1

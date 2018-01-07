@@ -1,7 +1,7 @@
 import sys
 import torch
 import os
-
+from api import hdf5_fun
 
 def get_model(cfg, pretrained=True, load_param_from_folder=False):
 
@@ -74,3 +74,10 @@ def save_model_and_optim(cfg, model, optimizer, epoch, best_prec1):
     optim_state['optim_state_best'] = optimizer.state_dict()
     save_checkpoint(optim_state, path_optim_state)
     # problem, should we store latest optim state or model, currently, we donot
+
+
+def get_data(train, flag):
+    data = hdf5_fun.h5_dataloader(train=train, flag=flag)
+    dataLoader = torch.utils.data.DataLoader(data, batch_size=cfg.batch_size,
+                                               shuffle=True, num_workers=int(cfg.workers))
+    return dataLoader
