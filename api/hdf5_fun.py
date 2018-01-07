@@ -93,10 +93,11 @@ def get_all_data_label_name(cfg, train, flag=-1):
     def get_num(name):
         return int(os.path.basename(name).split('.')[0].split('_')[-1])
 
-    if flag != -1:
-        for name in file_names:
-            if get_num(name)%flag == 0:
-                del name
+    if flag == 0:
+        file_names = file_names[0::2]
+
+    if flag == 1:
+        file_names = file_names[1::2]
 
     for file_name in file_names:
         t_data, t_label, t_name = h5_extract_data_label_name(cfg.patch_size, file_name)
