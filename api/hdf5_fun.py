@@ -10,6 +10,7 @@ from torch.utils.data import Dataset
 from tqdm import tqdm
 import patch_preprocess_fun
 from itertools import izip
+import random
 
 def _precoss_patches(cfg, dataset, file_type):
     data_block = np.zeros((cfg.patch_num_each_hdf5, cfg.patch_size * cfg.patch_size * 3), dtype=np.uint8)
@@ -80,7 +81,7 @@ def h5_extract_data_label_name(img_size, file_name):
     return data.reshape(-1, img_size, img_size, 3), label, name[0].split('\n')
 
 
-def get_all_data_label_name(cfg, train, flag=-1):
+def get_all_data_label_name(cfg, train, frac=1):
     file_names = None
     data = None
     label = None
@@ -90,14 +91,17 @@ def get_all_data_label_name(cfg, train, flag=-1):
     else:
         file_names = glob.glob(cfg.patch_hdf5_val_file_pre + '*')
 
-    def get_num(name):
-        return int(os.path.basename(name).split('.')[0].split('_')[-1])
+    random.shuffle(file_names)
+    file_names = file_names[:int(np.ceil(len(file_names)*frac))]
 
-    if flag == 0:
-        file_names = file_names[0::2]
-
-    if flag == 1:
-        file_names = file_names[1::2]
+    # def get_num(name):
+    #     return int(os.path.basename(name).split('.')[0].split('_')[-1])
+    #
+    # if flag == 0:
+    #     file_names = file_names[0::2]
+    #
+    # if flag == 1:
+    #     file_names = file_names[1::2]
 
     for file_name in file_names:
         t_data, t_label, t_name = h5_extract_data_label_name(cfg.patch_size, file_name)
@@ -113,12 +117,12 @@ def get_all_data_label_name(cfg, train, flag=-1):
 
 
 class h5_dataloader(Dataset):
-    def __init__(self, train = True, flag=-1):
+    def __init__(self, train = True, frac=1):
         cfg = config_fun.config()
         # self._raw_size = cfg.patch_size
         self._train = train
         self._compose = patch_preprocess_fun.get_train_val_compose()
-        self._data, self._label, self._name = get_all_data_label_name(cfg, train=train, flag=flag)
+        self._data, self._label, self._name = get_all_data_label_name(cfg, train=train, frac=frac)
         assert self._data.shape[0] == self._label.shape[0]
 
     def __getitem__(self, index):

@@ -76,8 +76,8 @@ def save_model_and_optim(cfg, model, optimizer, epoch, best_prec1):
     # problem, should we store latest optim state or model, currently, we donot
 
 
-def get_data(train, flag):
-    data = hdf5_fun.h5_dataloader(train=train, flag=flag)
+def get_data(train, frac):
+    data = hdf5_fun.h5_dataloader(train=train, frac=frac)
     dataLoader = torch.utils.data.DataLoader(data, batch_size=cfg.batch_size,
                                                shuffle=True, num_workers=int(cfg.workers))
     return dataLoader

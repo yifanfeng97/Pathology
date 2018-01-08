@@ -64,6 +64,7 @@ class config():
         ### number
         self.patch_num_each_hdf5 = cfg.getint('TRAIN', 'patch_num_each_hdf5')
         self.model_info = cfg.getint('TRAIN', 'model_info')
+        self.train_patch_frac = cfg.getfloat('TRAIN', 'train_patch_frac')
         self.num_classes = cfg.getint('TRAIN', 'num_classes')
         self.workers = cfg.getint('TRAIN', 'workers')
         self.batch_size = cfg.getint('TRAIN', 'batch_size')
