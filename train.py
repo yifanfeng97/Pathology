@@ -211,7 +211,7 @@ def main():
     criterion = criterion.cuda()
 
     train_loader = train_helper.get_data(True, cfg.train_patch_frac)
-    val_loader = train_helper.get_data(False, cfg.train_patch_frac)
+    val_loader = train_helper.get_data(False, cfg.val_patch_frac)
 
     for epoch in range(resume_epoch, cfg.max_epoch):
 
