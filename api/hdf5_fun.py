@@ -81,7 +81,7 @@ def h5_extract_data_label_name(img_size, file_name):
     return data.reshape(-1, img_size, img_size, 3), label, name[0].split('\n')
 
 
-def get_h5_file_list(train):
+def get_h5_file_list(train, cfg):
     if train:
         file_names = glob.glob(cfg.patch_hdf5_train_file_pre + '*')
     else:
@@ -95,7 +95,7 @@ def get_all_data_label_name(cfg, train, frac=1):
     label = None
     name = None
 
-    file_names = get_h5_file_list(train)
+    file_names = get_h5_file_list(train, cfg)
     random.shuffle(file_names)
     file_names = file_names[:int(np.ceil(len(file_names)*frac))]
 

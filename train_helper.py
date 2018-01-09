@@ -84,7 +84,7 @@ def get_data(train, frac=1, file_name=None, cfg=None):
 
 
 def train_file_wise(train, model, criterion, optimizer, epoch, cfg):
-    file_name_list = hdf5_fun.get_h5_file_list(train=True)
+    file_name_list = hdf5_fun.get_h5_file_list(True, cfg)
     for file_name in file_name_list:
         print('training data from file: ' + file_name)
         dataloader = get_data(True, file_name=file_name, cfg=cfg)
@@ -93,7 +93,7 @@ def train_file_wise(train, model, criterion, optimizer, epoch, cfg):
 
 def validate_file_wise(validate, model, criterion, epoch, cfg):
     prec1_sum = 0
-    file_name_list = hdf5_fun.get_h5_file_list(train=False)
+    file_name_list = hdf5_fun.get_h5_file_list(False, cfg)
     for file_name in file_name_list:
         print('validation data from file: ' + file_name)
         dataloader = get_data(True, file_name=file_name, cfg=cfg)
