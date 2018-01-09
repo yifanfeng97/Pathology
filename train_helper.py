@@ -76,7 +76,7 @@ def save_model_and_optim(cfg, model, optimizer, epoch, best_prec1):
     # problem, should we store latest optim state or model, currently, we donot
 
 
-def get_data(train, frac, file_name=None):
+def get_data(train, frac=1, file_name=None, cfg=None):
     data = hdf5_fun.h5_dataloader(train=train, frac=frac, file_name=file_name)
     dataLoader = torch.utils.data.DataLoader(data, batch_size=cfg.batch_size,
                                                shuffle=True, num_workers=int(cfg.workers))
@@ -86,7 +86,8 @@ def get_data(train, frac, file_name=None):
 def train_file_wise(train, model, criterion, optimizer, epoch, cfg):
     file_name_list = hdf5_fun.get_h5_file_list(train=True)
     for file_name in file_name_list:
-        dataloader = get_data(True, 1, file_name)
+        print('training data from file: ' + file_name)
+        dataloader = get_data(True, file_name=file_name, cfg=cfg)
         train(dataloader, model, criterion, optimizer, epoch, cfg)
 
 
@@ -94,6 +95,7 @@ def validate_file_wise(validate, model, criterion, epoch, cfg):
     prec1_sum = 0
     file_name_list = hdf5_fun.get_h5_file_list(train=False)
     for file_name in file_name_list:
-        dataloader = get_data(True, 1, file_name)
+        print('validation data from file: ' + file_name)
+        dataloader = get_data(True, file_name=file_name, cfg=cfg)
         prec1_sum += validate(dataloader, model, criterion, epoch, cfg)
     return prec1_sum/len(file_name_list)

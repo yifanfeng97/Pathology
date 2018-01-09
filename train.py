@@ -213,8 +213,8 @@ def main():
     train_loader = None
     val_loader = None
     if not cfg.train_file_wise:
-        train_loader = train_helper.get_data(True, cfg.train_patch_frac)
-        val_loader = train_helper.get_data(False, cfg.val_patch_frac)
+        train_loader = train_helper.get_data(True, cfg.train_patch_frac, cfg)
+        val_loader = train_helper.get_data(False, cfg.val_patch_frac, cfg)
 
     for epoch in range(resume_epoch, cfg.max_epoch):
 
