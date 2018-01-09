@@ -210,13 +210,20 @@ def main():
     # define loss function (criterion) and pptimizer
     criterion = criterion.cuda()
 
-    train_loader = train_helper.get_data(True, cfg.train_patch_frac)
-    val_loader = train_helper.get_data(False, cfg.val_patch_frac)
+    train_loader = None
+    val_loader = None
+    if not cfg.train_file_wise:
+        train_loader = train_helper.get_data(True, cfg.train_patch_frac)
+        val_loader = train_helper.get_data(False, cfg.val_patch_frac)
 
     for epoch in range(resume_epoch, cfg.max_epoch):
 
-        train(train_loader, model, criterion, optimizer, epoch, cfg)
-        prec1 = validate(val_loader, model, criterion, epoch, cfg)
+        if not cfg.train_file_wise:
+            train(train_loader, model, criterion, optimizer, epoch, cfg)
+            prec1 = validate(val_loader, model, criterion, epoch, cfg)
+        else:
+            train_helper.train_file_wise(train, model, criterion, optimizer, epoch, cfg)
+            prec1 = train_helper.validate_file_wise(validate, model, criterion, epoch, cfg)
 
         if best_prec1 < prec1:
             # save checkpoints
