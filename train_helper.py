@@ -34,6 +34,8 @@ def get_model(cfg, pretrained=True, load_param_from_folder=False):
         sys.exit(-1)
 
     if load_param_from_folder:
+        print('shift model to parallel!')
+        model = torch.nn.DataParallel(model, device_ids=cfg.gpu_id)
         print('loading pretrained model from {0}'.format(cfg.init_model_file))
         checkpoint = torch.load(cfg.init_model_file)
         model.load_state_dict(checkpoint['model_param'])
