@@ -17,6 +17,7 @@ def _np_resize(data, size):
 def _get_input_list(cfg, mask, frac):
     input_list = []
     min_patch_size = int(np.ceil(cfg.patch_size/frac))
+    all_cnt = 0
     # is foreground
     def is_fg(patch):
         return np.count_nonzero(patch) > min_patch_size*min_patch_size*2/3
@@ -27,6 +28,9 @@ def _get_input_list(cfg, mask, frac):
             raw_origin = (int(np.ceil(col * frac)), int(np.ceil(row * frac)))
             out_origin = (row, col)
             input_list.append({'raw': raw_origin, 'out': out_origin})
+        all_cnt += 1
+    print('the selected area is %d of %d (%.4f)'%(len(input_list),
+                                                  all_cnt, len(input_list)*1.0/all_cnt))
     return input_list
 
 class gmDataLoader(Dataset):
