@@ -17,6 +17,7 @@ def norm(p):
 
 f = open(cfg.test_file, 'r')
 for s in f.readlines():
+    if s.split()==[]: continue
     file_name, label = s.split('*')
     print('processing ' + file_name)
 

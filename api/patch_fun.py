@@ -10,11 +10,11 @@ def _prepare_data(data, file_type, auto_save_patch = True):
     patches = []
     for idx, item in enumerate(tqdm(data)):
         print('processing img: ' + item['data'][0])
-        patch = []
         if 'tumor' in item['info']:
-            patch = extract_patch_fun.extract(item, file_type, 'pos', auto_save_patch = auto_save_patch)
+            patch_type = 'pos'
         else:
-            patch = extract_patch_fun.extract(item, file_type, 'neg', auto_save_patch = auto_save_patch)
+            patch_type = 'neg'
+        patch = extract_patch_fun.extract(item, file_type, patch_type, auto_save_patch = auto_save_patch)
         patches.append({'data': item['data'][0],
                         'info': item['info'], 'patch': patch})
         print('get patches from %s, pos:%d, neg:%d\n'%

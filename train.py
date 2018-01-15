@@ -186,7 +186,7 @@ def main():
     print(model)
 
     # multiple gpu
-    model = torch.nn.DataParallel(model, device_ids=cfg.gpu_id)
+    # model = torch.nn.DataParallel(model, device_ids=cfg.gpu_id)
     model.cuda()
 
     # optimizer
