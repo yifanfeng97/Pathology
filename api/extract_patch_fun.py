@@ -13,10 +13,12 @@ BACKGROUND = 0
 SELECTED = 1
 NORMAL = 2
 TUMOR = 3
+SAMPLED = 4
 
 SELECTED_COLOR = [0, 0, 255] # Blue
 NORMAL_COLOR = [0, 255, 0] # Green
 TUMOR_COLOR = [255, 0, 0] # Red
+SAMPLED_COLOR = []
 
 
 class single_img_process():
@@ -257,6 +259,14 @@ class single_img_process():
         if (mask == SELECTED).any():
             img_mask[mask == SELECTED] = self._cfg.alpha * img_np[mask == SELECTED] + \
                                          (1 - self._cfg.alpha) * np.array(SELECTED_COLOR)
+        if self._patch_type=='pos':
+            if (mask == SAMPLED).any():
+                img_mask[mask == SAMPLED] = self._cfg.alpha * img_np[mask == SAMPLED] + \
+                                             (1 - self._cfg.alpha) * np.array(TUMOR_COLOR)
+        else:
+            if (mask == SAMPLED).any():
+                img_mask[mask == SAMPLED] = self._cfg.alpha * img_np[mask == SAMPLED] + \
+                                            (1 - self._cfg.alpha) * np.array(NORMAL_COLOR)
         return Image.fromarray(img_mask)
 
     def _is_bg(self, origin):
@@ -325,6 +335,20 @@ class single_img_process():
             img.close()
             cnt +=1
 
+
+    def _get_sampled_patch_mask(self, patches):
+        sampled_mask = np.zeros((self._img.level_dimensions[0][1]
+                                , self._img.level_dimensions[0][0]), np.uint8)
+        if self._patch_type == 'pos':
+            patches = patches['pos']
+        else:
+            patches = patches['neg']
+        for coor in patches:
+            sampled_mask[coor[1]: coor[1]+self._cfg.patch_size,
+                        coor[0]: coor[0]+self._cfg.patch_size] = SAMPLED
+        return sampled_mask
+
+
     def _get_train_patch(self):
         do_bg_filter = False
         patches = {'pos': [], 'neg': []}
@@ -368,6 +392,22 @@ class single_img_process():
                     patches['neg'].append(origin)
                     self._save_random_patch(origin, min_patch)
                     cnt+=1
+        # visualizaion
+        if self._cfg.vis_ov_mask:
+            raw_img = self._img.read_region((0, 0), self._min_mask_level,
+                                            self._img.level_dimensions[self._min_mask_level])
+            raw_img = raw_img.resize(self._min_mask_size)
+
+            mask_img = Image.fromarray(self._get_sampled_patch_mask(patches))
+            mask_np = np.asarray(mask_img.resize(self._min_mask_size))
+
+            sampled_patch_img = self._fusion_mask_img(raw_img, mask_np)
+
+            sampled_patch_img.save(os.path.join(self._cfg.vis_ov_mask_folder, os.path.basename(
+                self._file_name)[:-4] + '_sampled_mask' + self._cfg.img_ext))
+
+            sampled_patch_img.close()
+
         if self._auto_save_patch:
             self._save_patches(patches)
         return patches
