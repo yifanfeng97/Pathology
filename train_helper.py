@@ -2,6 +2,9 @@ import sys
 import torch
 import os
 from api import hdf5_fun
+import random
+import glob
+import json
 
 def get_model(cfg, pretrained=True, load_param_from_folder=False):
 
@@ -78,34 +81,60 @@ def save_model_and_optim(cfg, model, optimizer, epoch, best_prec1):
     # problem, should we store latest optim state or model, currently, we donot
 
 
-def get_data(train, frac=1, file_name=None, cfg=None):
-    data = hdf5_fun.h5_dataloader(train=train, frac=frac, file_name=file_name)
+def get_dataloader(data_type, frac=1, file_name=None, cfg=None):
+    data = hdf5_fun.h5_dataloader(data_type=data_type, frac=frac, file_name=file_name)
     dataLoader = torch.utils.data.DataLoader(data, batch_size=cfg.batch_size,
                                                shuffle=True, num_workers=int(cfg.workers))
     return dataLoader
 
+def get_slide_dataloader(block, cfg):
+    pass
+
+def get_block(data_type, cfg):
+    blocks = []
+    all_slide = json.load(open(cfg.split_file, 'r'))
+    slides = [s for s in all_slide if s['info'].startswith(data_type)]
+
+
+    coor_file_names = glob.glob(os.path.join(cfg.patch_coor_folder + '*'))
+    return blocks
 
 def train_slide_wise(train, model, criterion, optimizer, epoch, cfg):
-    pass
+    blocks = get_block('train', cfg)
+    random.shuffle(blocks)
+    for idx, block in enumerate(blocks):
+        print('[%d/%d] training data from file:\n' % (idx + 1, len(blocks)))
+        print(block['file_names'])
+        dataloader = get_slide_dataloader(block, cfg)
+        train(dataloader, model, criterion, optimizer, epoch, cfg)
 
 
 def validate_slide_wise(validate, model, criterion, epoch, cfg):
-    pass
+    prec1_sum = 0
+    blocks = get_block('train', cfg)
+    random.shuffle(blocks)
+    for idx, block in enumerate(blocks):
+        print('[%d/%d] validation data from file:\n' % (idx + 1, len(blocks)))
+        print(block['file_names'])
+        dataloader = get_slide_dataloader(block, cfg)
+        prec1_sum += validate(dataloader, model, criterion, epoch, cfg)
+    return prec1_sum/len(blocks)
+
 
 
 def train_file_wise(train, model, criterion, optimizer, epoch, cfg):
-    file_name_list = hdf5_fun.get_h5_file_list(True, cfg)
-    for file_name in file_name_list:
-        print('training data from file: ' + file_name)
-        dataloader = get_data(True, file_name=file_name, cfg=cfg)
+    file_name_list = hdf5_fun.get_h5_file_list('train', cfg)
+    for idx, file_name in enumerate(file_name_list):
+        print('training data from file: %s [%d/%d]' % (file_name, idx+1, len(file_name_list)))
+        dataloader = get_dataloader('train', file_name=file_name, cfg=cfg)
         train(dataloader, model, criterion, optimizer, epoch, cfg)
 
 
 def validate_file_wise(validate, model, criterion, epoch, cfg):
     prec1_sum = 0
-    file_name_list = hdf5_fun.get_h5_file_list(False, cfg)
-    for file_name in file_name_list:
-        print('validation data from file: ' + file_name)
-        dataloader = get_data(True, file_name=file_name, cfg=cfg)
+    file_name_list = hdf5_fun.get_h5_file_list('val', cfg)
+    for idx, file_name in enumerate(file_name_list):
+        print('validation data from file: %s [%d/%d]' % (file_name, idx+1, len(file_name_list)))
+        dataloader = get_dataloader('val', file_name=file_name, cfg=cfg)
         prec1_sum += validate(dataloader, model, criterion, epoch, cfg)
     return prec1_sum/len(file_name_list)

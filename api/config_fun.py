@@ -75,6 +75,7 @@ class config():
         self.weight_decay = cfg.getfloat('TRAIN', 'weight_decay')
         self.max_epoch = cfg.getint('TRAIN', 'max_epoch')
         self.print_freq = cfg.getint('TRAIN', 'print_freq')
+        self.train_slide_num_each_block = cfg.getint('TRAIN', 'train_slide_num_each_block')
         ### others
         self.model = cfg.get('TRAIN', 'model')
         self.model_pretrain = cfg.getboolean('TRAIN', 'model_pretrain')

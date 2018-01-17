@@ -81,21 +81,21 @@ def h5_extract_data_label_name(img_size, file_name):
     return data.reshape(-1, img_size, img_size, 3), label, name[0].split('\n')
 
 
-def get_h5_file_list(train, cfg):
-    if train:
+def get_h5_file_list(data_type, cfg):
+    if 'train' in data_type:
         file_names = glob.glob(cfg.patch_hdf5_train_file_pre + '*')
-    else:
+    elif 'val' in data_type:
         file_names = glob.glob(cfg.patch_hdf5_val_file_pre + '*')
     return file_names
 
 
-def get_all_data_label_name(cfg, train, frac=1):
+def get_all_data_label_name(cfg, data_type, frac=1):
     file_names = None
     data = None
     label = None
     name = None
 
-    file_names = get_h5_file_list(train, cfg)
+    file_names = get_h5_file_list(data_type, cfg)
     random.shuffle(file_names)
     file_names = file_names[:int(np.ceil(len(file_names)*frac))]
 
@@ -122,12 +122,12 @@ def get_all_data_label_name(cfg, train, frac=1):
 
 
 class h5_dataloader(Dataset):
-    def __init__(self, train = True, frac=1, file_name=None):
+    def __init__(self, data_type = 'train', frac=1, file_name=None):
         cfg = config_fun.config()
-        self._train = train
+        self._data_type = data_type
         self._compose = patch_preprocess_fun.get_train_val_compose()
         if file_name is None:
-            self._data, self._label, self._name = get_all_data_label_name(cfg, train=train, frac=frac)
+            self._data, self._label, self._name = get_all_data_label_name(cfg, data_type=data_type, frac=frac)
         else:
             self._data, self._label, self._name = h5_extract_data_label_name(cfg.patch_size, file_name)
         assert self._data.shape[0] == self._label.shape[0]
