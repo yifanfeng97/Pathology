@@ -308,15 +308,15 @@ class single_img_process():
 
     def _save_patches(self, patches):
 
-        cnt = 0
+        # cnt = 0
         if patches['pos'] == []:
             patches = patches['neg']
         else:
             patches = patches['pos']
         random.shuffle(patches)
         for patch in patches:
-            if cnt >= self._cfg.patch_num_in_train:
-                break
+            # if cnt >= self._cfg.patch_num_in_train:
+            #     break
             img = self._img.read_region(patch, 0, (self._cfg.patch_size, self._cfg.patch_size))
             folder_pre = None
             if self._file_type == 'train':
@@ -333,19 +333,22 @@ class single_img_process():
             img.save(os.path.join(folder_pre, os.path.basename(self._file_name)[:-4]
                                   + '_%d_%d' % patch + self._cfg.img_ext))
             img.close()
-            cnt +=1
+            # cnt +=1
 
 
     def _get_sampled_patch_mask(self, patches):
-        sampled_mask = np.zeros((self._img.level_dimensions[0][1]
-                                , self._img.level_dimensions[0][0]), np.uint8)
+        sampled_mask = np.zeros((self._min_mask_size[1]
+                                , self._min_mask_size[0]), np.uint8)
+        frac = self._min_mask_size[0]*1.0/self._img.level_dimensions[0][0]
+        min_patch_size = int(self._cfg.patch_size*frac)
         if self._patch_type == 'pos':
             patches = patches['pos']
         else:
             patches = patches['neg']
         for coor in patches:
-            sampled_mask[coor[1]: coor[1]+self._cfg.patch_size,
-                        coor[0]: coor[0]+self._cfg.patch_size] = SAMPLED
+            min_coor = (int(coor[0]*frac), int(coor[1]*frac))
+            sampled_mask[min_coor[1]: min_coor[1]+min_patch_size,
+                min_coor[0]: min_coor[0]+min_patch_size] = SAMPLED
         return sampled_mask
 
 
@@ -357,12 +360,17 @@ class single_img_process():
         num_row = num_row - self._min_patch_size
         num_col = num_col - self._min_patch_size
 
+        if self._patch_type == 'pos':
+            patch_num = self._cfg.pos_patch_num_in_file
+        else:
+            patch_num = self._cfg.neg_patch_num_in_file
+
         # step = 1
         row_col = list(product(range(num_row), range(num_col)))
         random.shuffle(row_col)
         cnt = 0
         for row, col in row_col:
-            if cnt >= self._cfg.patch_num_in_file:
+            if cnt >= patch_num:
                 break
             min_patch = self._min_mask[row: row + self._min_patch_size,
                        col: col + self._min_patch_size]
@@ -398,8 +406,7 @@ class single_img_process():
                                             self._img.level_dimensions[self._min_mask_level])
             raw_img = raw_img.resize(self._min_mask_size)
 
-            mask_img = Image.fromarray(self._get_sampled_patch_mask(patches))
-            mask_np = np.asarray(mask_img.resize(self._min_mask_size))
+            mask_np = self._get_sampled_patch_mask(patches)
 
             sampled_patch_img = self._fusion_mask_img(raw_img, mask_np)
 

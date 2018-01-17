@@ -14,7 +14,7 @@ def _prepare_data(cfg, data, file_type, auto_save_patch = True):
         coor_file_name = os.path.join(cfg.patch_coor_folder,
                     'coor' + os.path.basename(filename).split('.')[0] + '.npy')
         if os.path.exists(coor_file_name):
-            print('find ', coor_file_name)
+            print('find ' + coor_file_name)
             continue
 
         print('processing img: ' + filename)
@@ -24,12 +24,13 @@ def _prepare_data(cfg, data, file_type, auto_save_patch = True):
             patch_type = 'neg'
         patch = extract_patch_fun.extract(item, file_type, patch_type, auto_save_patch = auto_save_patch)
         patch_cell = {'data': filename,
-                        'info': item['info'], 'patch': patch}
+                        'info': item['info'],
+                        'patch': patch}
         # patches.append(patch_cell)
         print('get patches from %s, pos:%d, neg:%d\n'%
               (os.path.basename(filename), len(patch['pos']), len(patch['neg'])))
         print('save patch coor into file ', coor_file_name)
-        np.save(patch, coor_file_name)
+        np.save(coor_file_name, patch_cell)
     # return patches
 
 
@@ -38,6 +39,7 @@ def get_coor(cfg, file_type):
     file_names = glob.glob(os.path.join(cfg.patch_coor_folder, '*'))
     for file_name in file_names:
         coor = np.load(file_name)
+        coor = coor.item()
         if coor['info'].startswith(file_type):
             patches.append(coor)
     return patches

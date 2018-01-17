@@ -20,10 +20,10 @@ def main():
         patch_fun.generate_patch(auto_save_patch=False)
     else:
         print('not generate patch~')
-    print('convert patches to hdf5 files~')
-    hdf5_fun.convert_patch_to_hdf5()
-    # vis the packaged hdf5 file
-    hdf5_fun.random_vis_hdf5()
+    # print('convert patches to hdf5 files~')
+    # hdf5_fun.convert_patch_to_hdf5()
+    # # vis the packaged hdf5 file
+    # hdf5_fun.random_vis_hdf5()
 
 if __name__ == '__main__':
     main()
