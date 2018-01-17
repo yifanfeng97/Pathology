@@ -212,18 +212,21 @@ def main():
 
     train_loader = None
     val_loader = None
-    if not cfg.train_file_wise:
+    if cfg.train_file_wise == False:
         train_loader = train_helper.get_data(True, cfg.train_patch_frac, cfg)
         val_loader = train_helper.get_data(False, cfg.val_patch_frac, cfg)
 
     for epoch in range(resume_epoch, cfg.max_epoch):
 
-        if not cfg.train_file_wise:
+        if cfg.train_slide_wise:
+            train_helper.train_slide_wise(train, model, criterion, optimizer, epoch, cfg)
+            prec1 = train_helper.validate_file_wise(validate, model, criterion, epoch, cfg)
+        elif cfg.train_file_wise:
+            train_helper.train_slide_wise(train, model, criterion, optimizer, epoch, cfg)
+            prec1 = train_helper.validate_file_wise(validate, model, criterion, epoch, cfg)
+        else:
             train(train_loader, model, criterion, optimizer, epoch, cfg)
             prec1 = validate(val_loader, model, criterion, epoch, cfg)
-        else:
-            train_helper.train_file_wise(train, model, criterion, optimizer, epoch, cfg)
-            prec1 = train_helper.validate_file_wise(validate, model, criterion, epoch, cfg)
 
         if best_prec1 < prec1:
             # save checkpoints

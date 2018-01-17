@@ -82,6 +82,7 @@ class config():
         self.gpu_id = [int(id) for id in self.gpu_id.split(', ')]
         self.resume_training = cfg.getboolean('TRAIN', 'resume_training')
         self.train_file_wise = cfg.getboolean('TRAIN', 'train_file_wise')
+        self.train_slide_wise = cfg.getboolean('TRAIN', 'train_slide_wise')
 
         # GENERATE MAP
         self.gm_foder = cfg.get('GENERATE_MAP', 'gm_foder')

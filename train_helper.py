@@ -85,6 +85,14 @@ def get_data(train, frac=1, file_name=None, cfg=None):
     return dataLoader
 
 
+def train_slide_wise(train, model, criterion, optimizer, epoch, cfg):
+    pass
+
+
+def validate_slide_wise(validate, model, criterion, epoch, cfg):
+    pass
+
+
 def train_file_wise(train, model, criterion, optimizer, epoch, cfg):
     file_name_list = hdf5_fun.get_h5_file_list(True, cfg)
     for file_name in file_name_list:
