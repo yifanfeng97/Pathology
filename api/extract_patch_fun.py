@@ -372,8 +372,6 @@ class single_img_process():
             self._save_patches(patches)
         return patches
 
-    def _save_patch(self):
-        pass
 
 
 

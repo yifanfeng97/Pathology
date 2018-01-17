@@ -17,7 +17,7 @@ def main():
 
     if cfg.redividing or cfg.regenerate:
         print('generate patch~')
-        patch_fun.generate_patch(auto_save_patch=True)
+        patch_fun.generate_patch(auto_save_patch=False)
     else:
         print('not generate patch~')
     print('convert patches to hdf5 files~')
