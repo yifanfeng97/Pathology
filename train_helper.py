@@ -8,6 +8,7 @@ import json
 from api import patch_fun
 import numpy as np
 import os
+from api import dataloader_fun
 
 def get_model(cfg, pretrained=True, load_param_from_folder=False):
 
@@ -91,8 +92,11 @@ def get_dataloader(data_type, frac=1, file_name=None, cfg=None):
     return dataLoader
 
 
-def get_slide_dataloader(blocks, cfg):
-    pass
+def get_slide_dataloader(block, cfg):
+    data = dataloader_fun.slides_dataloader(block, cfg)
+    dataLoader = torch.utils.data.DataLoader(data, batch_size=cfg.batch_size,
+                                             shuffle=True, num_workers=int(cfg.workers))
+    return dataLoader
 
 
 def get_block(slides, cfg):
@@ -109,8 +113,10 @@ def get_block(slides, cfg):
             sys.exit(0)
         file_names.append(slide['data'][0])
         info.append(slide['info'])
-        coor_dir = os.path.join(cfg.patch_coor_folder, 'coor_'+os.path.basename(slide['data'][0]))
+        coor_dir = os.path.join(cfg.patch_coor_folder,
+                'coor_'+os.path.basename(slide['data'][0].split('.')[0]+'.npy'))
         coor = patch_fun.get_coor(coor_dir)['patch']
+        coor = coor['pos'] + coor['neg']
         coor = [(idx, c, label) for c in coor]
         coors.extend(coor)
     block = {'file_name':file_names,
@@ -131,27 +137,29 @@ def get_blocks(data_type, cfg):
         blocks.append(block)
     return blocks
 
+
 def train_slide_wise(train, model, criterion, optimizer, epoch, cfg):
     blocks = get_blocks('train', cfg)
     random.shuffle(blocks)
     for idx, block in enumerate(blocks):
-        print('[%d/%d] training data from file:\n' % (idx + 1, len(blocks)))
-        print(block['file_names'])
+        print('[%d/%d] training data from file:' % (idx + 1, len(blocks)))
+        for f in block['file_name']:
+            print(f)
         dataloader = get_slide_dataloader(block, cfg)
         train(dataloader, model, criterion, optimizer, epoch, cfg)
 
 
 def validate_slide_wise(validate, model, criterion, epoch, cfg):
     prec1_sum = 0
-    blocks = get_blocks('train', cfg)
+    blocks = get_blocks('val', cfg)
     random.shuffle(blocks)
     for idx, block in enumerate(blocks):
-        print('[%d/%d] validation data from file:\n' % (idx + 1, len(blocks)))
-        print(block['file_names'])
+        print('[%d/%d] validation data from file:' % (idx + 1, len(blocks)))
+        for f in block['file_name']:
+            print(f)
         dataloader = get_slide_dataloader(block, cfg)
         prec1_sum += validate(dataloader, model, criterion, epoch, cfg)
     return prec1_sum/len(blocks)
-
 
 
 def train_file_wise(train, model, criterion, optimizer, epoch, cfg):
