@@ -12,7 +12,7 @@ def _prepare_data(cfg, data, file_type, auto_save_patch = True):
     for idx, item in enumerate(tqdm(data)):
         filename = item['data'][0]
         coor_file_name = os.path.join(cfg.patch_coor_folder,
-                    'coor' + os.path.basename(filename).split('.')[0] + '.npy')
+                    'coor_' + os.path.basename(filename).split('.')[0] + '.npy')
         if os.path.exists(coor_file_name):
             print('find ' + coor_file_name)
             continue
@@ -34,12 +34,15 @@ def _prepare_data(cfg, data, file_type, auto_save_patch = True):
     # return patches
 
 
-def get_coor(cfg, file_type):
+def get_coor(file_name):
+    return np.load(file_name).item()
+
+
+def get_coors(cfg, file_type):
     patches = []
     file_names = glob.glob(os.path.join(cfg.patch_coor_folder, '*'))
     for file_name in file_names:
-        coor = np.load(file_name)
-        coor = coor.item()
+        coor = get_coor(file_name)
         if coor['info'].startswith(file_type):
             patches.append(coor)
     return patches
@@ -59,8 +62,8 @@ def generate_patch(auto_save_patch = True):
     _prepare_data(cfg, train_data, 'train', auto_save_patch = auto_save_patch)
     _prepare_data(cfg, val_data, 'val', auto_save_patch = auto_save_patch)
 
-    train_patch = get_coor(cfg, 'train')
-    val_patch = get_coor(cfg, 'val')
+    train_patch = get_coors(cfg, 'train')
+    val_patch = get_coors(cfg, 'val')
 
     print('train file %d'%len(train_patch))
     print('val file %d'%len(val_patch))
