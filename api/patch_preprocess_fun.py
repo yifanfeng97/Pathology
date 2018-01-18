@@ -67,6 +67,23 @@ def get_train_val_compose():
     ])
     return compose
 
+
+def get_slide_compose():
+    cfg = config_fun.config()
+    input_size = get_input_size(cfg)
+    info = get_mean_std(cfg)
+    normalize = transforms.Normalize(mean=info['mean'],
+                                     std=info['std'])
+    compose = transforms.Compose([
+        transforms.RandomResizedCrop(input_size),
+        transforms.RandomHorizontalFlip(),
+        transforms.RandomVerticalFlip(),
+        RandomRotate45(),
+        transforms.ToTensor(),
+        normalize,
+    ])
+    return compose
+
 def get_gm_compose():
     cfg = config_fun.config()
     input_size = get_input_size(cfg)

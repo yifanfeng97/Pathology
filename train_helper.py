@@ -100,11 +100,18 @@ def get_block(slides, cfg):
     coors = []
     info = []
     for idx, slide in enumerate(slides):
+        if slide['info'].endswith('tumor'):
+            label = 1
+        elif slide['info'].endswith('normal'):
+            label = 0
+        else:
+            print('get block label error')
+            sys.exit(0)
         file_names.append(slide['data'][0])
         info.append(slide['info'])
         coor_dir = os.path.join(cfg.patch_coor_folder, 'coor_'+os.path.basename(slide['data'][0]))
         coor = patch_fun.get_coor(coor_dir)['patch']
-        coor = [(idx, c) for c in coor]
+        coor = [(idx, c, label) for c in coor]
         coors.extend(coor)
     block = {'file_name':file_names,
              'coor': coors,
