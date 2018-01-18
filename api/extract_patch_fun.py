@@ -40,7 +40,7 @@ class single_img_process():
     def _get_level(self, size):
         level = self._img.level_count -1
         while self._img.level_dimensions[level][0] < size[0] and \
-            self._img.level_dimensions[level][1] < size[0]:
+            self._img.level_dimensions[level][1] < size[1]:
             level -= 1
         return level
 
@@ -337,9 +337,10 @@ class single_img_process():
 
 
     def _get_sampled_patch_mask(self, patches):
-        sampled_mask = np.zeros((self._min_mask_size[1]
-                                , self._min_mask_size[0]), np.uint8)
-        frac = self._min_mask_size[0]*1.0/self._img.level_dimensions[0][0]
+        lvl = self._get_level((40000, 40000)) + 1
+        size = self._img.level_dimensions[lvl]
+        sampled_mask = np.zeros((size[1], size[0]), np.uint8)
+        frac = size[0]*1.0/self._img.level_dimensions[0][0]
         min_patch_size = int(self._cfg.patch_size*frac)
         if self._patch_type == 'pos':
             patches = patches['pos']
@@ -349,14 +350,28 @@ class single_img_process():
             min_coor = (int(coor[0]*frac), int(coor[1]*frac))
             sampled_mask[min_coor[1]: min_coor[1]+min_patch_size,
                 min_coor[0]: min_coor[0]+min_patch_size] = SAMPLED
+        sampled_mask = np.asarray(Image.fromarray(sampled_mask).resize(self._min_mask_size))
         return sampled_mask
 
+    # test the col raw is right
+    def _get_test_mask(self, patches):
+        lvl = self._get_level((40000, 40000)) + 1
+        size = self._img.level_dimensions[lvl]
+        sampled_mask = np.zeros((size[1], size[0]), np.uint8)
+        frac = size[0]*1.0/self._img.level_dimensions[0][0]
+        min_patch_size = int(self._cfg.patch_size*frac)
+        for coor in patches:
+            min_coor = (int(coor[0]*frac), int(coor[1]*frac))
+            sampled_mask[min_coor[1]: min_coor[1]+min_patch_size,
+                min_coor[0]: min_coor[0]+min_patch_size] = SAMPLED
+        sampled_mask = np.asarray(Image.fromarray(sampled_mask).resize(self._min_mask_size))
+        return sampled_mask
 
     def _get_train_patch(self):
         do_bg_filter = False
         patches = {'pos': [], 'neg': []}
         assert self._min_mask_size[1], self._min_mask_size[0] == self._min_mask.shape
-        num_row, num_col = self._min_mask_size
+        num_row, num_col = self._min_mask.shape
         num_row = num_row - self._min_patch_size
         num_col = num_col - self._min_patch_size
 
@@ -369,6 +384,12 @@ class single_img_process():
         row_col = list(product(range(num_row), range(num_col)))
         random.shuffle(row_col)
         cnt = 0
+        # ### test raw col
+        # tmp_patches = []
+        # for row, col in row_col:
+        #     tmp_patches.append((int(col * self._cfg.min_frac), int(row * self._cfg.min_frac)))
+        # self._get_test_mask(tmp_patches)
+
         for row, col in row_col:
             if cnt >= patch_num:
                 break
@@ -377,14 +398,14 @@ class single_img_process():
             origin = (int(col * self._cfg.min_frac), int(row * self._cfg.min_frac))
 
             H, W = min_patch.shape
-            H_min = int(np.ceil(H / 4))
-            H_max = int(np.ceil(H / 4 * 3))
-            W_min = int(np.ceil(W / 4))
-            W_max = int(np.ceil(W / 4 * 3))
+            H_min = int(np.ceil(H / 8))
+            H_max = int(np.ceil(H / 8 * 7))
+            W_min = int(np.ceil(W / 8))
+            W_max = int(np.ceil(W / 8 * 7))
             # half of the center
-            th_num = int(np.ceil((H/2 * W/2) /2))
+            th_num = int(np.ceil((H*3/4 * W*3/4) ))
             if self._patch_type == 'pos':
-                if np.count_nonzero(min_patch[H_min:H_max, W_min:W_max] == TUMOR) > th_num:
+                if np.count_nonzero(min_patch[H_min:H_max, W_min:W_max] == TUMOR) >= th_num:
                     if do_bg_filter:
                         if self._is_bg(origin):
                             continue
@@ -393,7 +414,7 @@ class single_img_process():
                     cnt+=1
 
             if self._patch_type == 'neg':
-                if np.count_nonzero(min_patch[H_min:H_max, W_min:W_max] == NORMAL) > th_num:
+                if np.count_nonzero(min_patch[H_min:H_max, W_min:W_max] == NORMAL) >= th_num:
                     if do_bg_filter:
                         if self._is_bg(origin):
                             continue
