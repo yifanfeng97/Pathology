@@ -9,7 +9,6 @@ from PIL import Image
 cfg = config_fun.config()
 model = train_helper.get_model(cfg, load_param_from_folder=True)
 
-# model = torch.nn.DataParallel(model, device_ids=cfg.gpu_id)
 model.cuda()
 
 def norm(p):

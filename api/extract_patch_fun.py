@@ -39,7 +39,7 @@ class single_img_process():
 
     def _get_level(self, size):
         level = self._img.level_count -1
-        while self._img.level_dimensions[level][0] < size[0] and \
+        while level>=0 and self._img.level_dimensions[level][0] < size[0] and \
             self._img.level_dimensions[level][1] < size[1]:
             level -= 1
         return level

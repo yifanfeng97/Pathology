@@ -10,6 +10,7 @@ import numpy as np
 import os
 from api import dataloader_fun
 
+
 def get_model(cfg, pretrained=True, load_param_from_folder=False):
 
     if load_param_from_folder:
@@ -41,12 +42,12 @@ def get_model(cfg, pretrained=True, load_param_from_folder=False):
         sys.exit(-1)
 
     if load_param_from_folder:
-        print('shift model to parallel!')
-        # model = torch.nn.DataParallel(model, device_ids=cfg.gpu_id)
         print('loading pretrained model from {0}'.format(cfg.init_model_file))
         checkpoint = torch.load(cfg.init_model_file)
         model.load_state_dict(checkpoint['model_param'])
 
+    print('shift model to parallel!')
+    model = torch.nn.DataParallel(model, device_ids=cfg.gpu_id)
     return model
 
 
@@ -70,7 +71,14 @@ def save_model_and_optim(cfg, model, optimizer, epoch, best_prec1):
     path_checkpoint = os.path.join(cfg.checkpoint_folder, 'model_param.pth')
     # path_checkpoint = '{0}/{1}/model_param.pth'.format(cfg.checkpoint_folder, epoch)
     checkpoint = {}
-    checkpoint['model_param'] = model.state_dict()
+    if isinstance(model, torch.nn.DataParallel):
+        model_save = model.module
+    elif isinstance(model, torch.nn.Module):
+        model_save = model
+    else:
+        print('model save type error')
+        sys.exit()
+    checkpoint['model_param'] = model_save.state_dict()
 
     save_checkpoint(checkpoint, path_checkpoint)
 
