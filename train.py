@@ -162,20 +162,9 @@ def validate(val_loader, model, criterion, epoch, cfg):
 def main():
     cfg = config_fun.config()
 
-    # train_dataset = hdf5_fun.h5_dataloader(train=True)
-    # val_dataset = hdf5_fun.h5_dataloader(train=False)
-
-    # print('number of train samples is: ', len(train_dataset))
-    # print('number of test samples is: ', len(val_dataset))
-    # print('finished loading data')
     best_prec1 = 0
     # only used when we resume training from some checkpoint model
     resume_epoch = 0
-    # # train data loader
-    # train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=cfg.batch_size,
-    #                                            shuffle=True, num_workers=int(cfg.workers))
-    # val_loader = torch.utils.data.DataLoader(val_dataset, batch_size=cfg.batch_size,
-    #                                           shuffle=True, num_workers=int(cfg.workers))
 
     if not cfg.resume_training:
         model = train_helper.get_model(cfg, pretrained=cfg.model_pretrain)

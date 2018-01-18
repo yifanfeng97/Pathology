@@ -86,7 +86,7 @@ def save_model_and_optim(cfg, model, optimizer, epoch, best_prec1):
 
 
 def get_dataloader(data_type, frac=1, file_name=None, cfg=None):
-    data = hdf5_fun.h5_dataloader(data_type=data_type, frac=frac, file_name=file_name)
+    data = dataloader_fun.h5_dataloader(data_type=data_type, frac=frac, file_name=file_name)
     dataLoader = torch.utils.data.DataLoader(data, batch_size=cfg.batch_size,
                                                shuffle=True, num_workers=int(cfg.workers))
     return dataLoader
