@@ -208,9 +208,9 @@ def main():
 
         if cfg.train_slide_wise:
             train_helper.train_slide_wise(train, model, criterion, optimizer, epoch, cfg)
-            prec1 = train_helper.validate_file_wise(validate, model, criterion, epoch, cfg)
+            prec1 = train_helper.validate_slide_wise(validate, model, criterion, epoch, cfg)
         elif cfg.train_file_wise:
-            train_helper.train_slide_wise(train, model, criterion, optimizer, epoch, cfg)
+            train_helper.train_file_wise(train, model, criterion, optimizer, epoch, cfg)
             prec1 = train_helper.validate_file_wise(validate, model, criterion, epoch, cfg)
         else:
             train(train_loader, model, criterion, optimizer, epoch, cfg)
