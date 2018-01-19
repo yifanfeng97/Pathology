@@ -48,7 +48,8 @@ class h5_dataloader(Dataset):
     def __len__(self):
         return self._label.shape[0]
 
-class gmDataLoader(Dataset):
+
+class gm_cls_DataLoader(Dataset):
     def __init__(self, input_list, slide, patch_size):
         # super(testDataLoader, self).__init__()
         self._patch_size = patch_size

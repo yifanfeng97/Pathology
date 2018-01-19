@@ -1,5 +1,5 @@
 from api import config_fun
-from api import prob_map
+from api import prob_map_cls
 import numpy as np
 import train_helper
 import os
@@ -20,7 +20,7 @@ for s in f.readlines():
     file_name, label = s.split('*')
     print('processing ' + file_name)
 
-    raw_img, b_map, p_map = prob_map.generate_prob_map(cfg, model, file_name)
+    raw_img, b_map, p_map = prob_map_cls.generate_prob_map(cfg, model, file_name)
 
     save_dir_pre = os.path.join(cfg.gm_foder,
                                 os.path.basename(file_name).split('.')[0])

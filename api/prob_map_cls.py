@@ -3,7 +3,6 @@ import numpy as np
 import extract_patch_fun
 from itertools import product
 from torch.utils.data import Dataset
-import patch_preprocess_fun
 import torch
 from tqdm import tqdm
 from torch.autograd import Variable
@@ -76,7 +75,7 @@ def generate_prob_map(cfg, model, file_name):
     print('Done! %.4fs' % t.value())
     print('get %d input patch'%len(input_list))
 
-    gm_dataset = dataloader_fun.gmDataLoader(input_list, slide._img, cfg.patch_size)
+    gm_dataset = dataloader_fun.gm_cls_DataLoader(input_list, slide._img, cfg.patch_size)
 
     gm_loader = torch.utils.data.DataLoader(gm_dataset, batch_size=cfg.gm_batch_size,
                                             shuffle=False, num_workers=cfg.gm_work_num)
