@@ -64,3 +64,20 @@ class gm_cls_DataLoader(Dataset):
 
     def __len__(self):
         return len(self._data)
+
+
+class gm_fcn_DataLoader(Dataset):
+    def __init__(self, input_list, slide, patch_size):
+        # super(testDataLoader, self).__init__()
+        self._patch_size = patch_size
+        self._data = input_list
+        self._slide = slide
+        self._compose = patch_preprocess_fun.get_gm_compose(patch_size)
+
+    def __getitem__(self, index):
+        img = self._slide.read_region(self._data[index]['raw'], 0,
+                                (self._patch_size, self._patch_size))
+        return self._compose(img)
+
+    def __len__(self):
+        return len(self._data)

@@ -8,6 +8,7 @@ from tqdm import tqdm
 from torch.autograd import Variable
 from api.meter import timemeter
 import dataloader_fun
+import sys
 
 
 def _np_resize(data, size):
@@ -19,16 +20,20 @@ def is_fg(patch, min_patch_size):
     return np.count_nonzero(patch) > min_patch_size*min_patch_size*9/10
 
 
-def _get_input_list(cfg, mask, frac):
+def _get_input_list(mask, mask_frac, patch_in_size, size_raw, size_out, patch_out_size):
     input_list = []
-    min_patch_size = int(np.ceil(cfg.patch_size/frac))
-    n_row, n_col = mask.shape
-    for row, col in product(range(n_row-min_patch_size), range(n_col-min_patch_size)):
-        if is_fg(mask[row: row + min_patch_size, col: col + min_patch_size], min_patch_size):
-            # for PIL Image, reverse the row and col
-            raw_origin = (int(np.ceil(col * frac)), int(np.ceil(row * frac)))
-            out_origin = (row, col)
-            input_list.append({'raw': raw_origin, 'out': out_origin})
+    stride_row = cal_stride(patch_in_size, size_raw[1], size_out[1])
+    stride_col = cal_stride(patch_in_size, size_raw[0], size_out[0])
+    min_stride_row = int(stride_row/mask_frac)
+    min_stride_col = int(stride_col/mask_frac)
+    min_patch_size = int(patch_in_size/mask_frac)
+
+    for row in range(0, size_out[1]-min_stride_row, min_stride_row):
+        for col in range(0, size_out[0]-min_stride_col, min_stride_col):
+            if is_fg(mask[row: row + min_patch_size, col: col + min_patch_size], min_patch_size):
+                raw_origin = (int(col* mask_frac), int(row*mask_frac))
+                out_origin = (row/stride_row * patch_out_size, col/stride_col * patch_out_size)
+                input_list.append({'raw': raw_origin, 'out': out_origin})
     return input_list
 
 
@@ -43,14 +48,26 @@ def _get_label_prob(data_loader, model):
         if output is None:
             output = preds.data.cpu().squeeze().numpy()
         else:
-            output = np.vstack((output, preds.data.cpu().squeeze().numpy()))
+            output = np.concatenate((output, preds.data.cpu().squeeze().numpy()), axis=0)
     return output
 
 
-def _fill_list_into_map(input_list, maps, output):
+def _fill_list_into_map(input_list, maps, output, patch_out_size):
     for idx, item in enumerate(tqdm(input_list)):
-        maps[item['out']] = output[idx]
+        maps[item['out'][0]: item['out'][0]+patch_out_size,
+                item['out'][1]:item['out'][1]+patch_out_size] = output[idx]
     return maps
+
+
+def cal_new_len(windows_size, img_size):
+    if windows_size<=192 or img_size<=192:
+        print('windows_size or img_size is smaller than 192')
+        sys.exit(-1)
+    return int((img_size-192)/(windows_size-192))
+
+
+def cal_stride(windows_size, img_size, num):
+    return (img_size-windows_size)/num
 
 
 def generate_prob_map(cfg, model, file_name):
@@ -59,23 +76,30 @@ def generate_prob_map(cfg, model, file_name):
     print('start extract background ')
     img, mask = slide._generate_img_bg_mask()
     print('Done! %.4fs'%t.value())
-    size_raw = slide._img.level_dimensions[0]
-    size_out = (int(np.ceil(size_raw[0]/cfg.gm_stride)), int(np.ceil(size_raw[1]/cfg.gm_stride)))
 
-    frac = np.ceil(size_raw[0]/size_out[0])
+    size_raw = slide._img.level_dimensions[0]
+
+    mask_frac = size_raw[1]*1.0/mask.shape[0]
+
+    # calculate the gm row column and patch out size
+    row = cal_new_len(cfg.windows_size, size_raw[1])
+    col = cal_new_len(cfg.windows_size, size_raw[0])
+    patch_out_size = cfg.windows_size/32 -6
+
+    size_out = (col, row)
 
     img = img.resize(size_out)
-    mask = _np_resize(mask, size_out)
+    # mask = _np_resize(mask, (size_out[1], size_out[0]))
 
-    b_map = np.zeros(mask.shape).astype(np.uint8)
-    p_map = np.zeros(mask.shape).astype(np.float32)
+    b_map = np.zeros((row, col)).astype(np.uint8)
+    p_map = np.zeros((row, col)).astype(np.float32)
 
     print('start get input list ')
-    input_list = _get_input_list(cfg, mask, frac)
+    input_list = _get_input_list(mask, mask_frac, cfg.windows_size, size_raw, size_out, patch_out_size)
     print('Done! %.4fs' % t.value())
     print('get %d input patch'%len(input_list))
 
-    gm_dataset = dataloader_fun.gmDataLoader(input_list, slide._img, cfg.patch_size)
+    gm_dataset = dataloader_fun.gm_fcn_DataLoader(input_list, slide._img, cfg.windows_size)
 
     gm_loader = torch.utils.data.DataLoader(gm_dataset, batch_size=cfg.gm_batch_size,
                                             shuffle=False, num_workers=cfg.gm_work_num)
@@ -86,8 +110,8 @@ def generate_prob_map(cfg, model, file_name):
     output_p = output[:, 1]
 
     print('start fill the output into the map')
-    b_map = _fill_list_into_map(input_list, b_map, output_b)
-    p_map = _fill_list_into_map(input_list, p_map, output_p)
+    b_map = _fill_list_into_map(input_list, b_map, output_b, patch_out_size)
+    p_map = _fill_list_into_map(input_list, p_map, output_p, patch_out_size)
     print('Done! %.4fs' % t.value())
 
     return img, b_map, p_map

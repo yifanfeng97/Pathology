@@ -84,9 +84,10 @@ def get_slide_compose():
     ])
     return compose
 
-def get_gm_compose():
+
+def get_gm_compose(input_size=None):
     cfg = config_fun.config()
-    input_size = get_input_size(cfg)
+    if input_size is None: input_size = get_input_size(cfg)
     info = get_mean_std(cfg)
     normalize = transforms.Normalize(mean=info['mean'],
                                      std=info['std'])
