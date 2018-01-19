@@ -28,8 +28,8 @@ def _get_input_list(mask, mask_frac, patch_in_size, size_raw, size_out, patch_ou
     min_stride_col = int(stride_col/mask_frac)
     min_patch_size = int(patch_in_size/mask_frac)
 
-    for row in range(0, size_out[1]-min_stride_row, min_stride_row):
-        for col in range(0, size_out[0]-min_stride_col, min_stride_col):
+    for row in range(0, mask.shape[0]-min_stride_row, min_stride_row):
+        for col in range(0, mask.shape[1]-min_stride_col, min_stride_col):
             if is_fg(mask[row: row + min_patch_size, col: col + min_patch_size], min_patch_size):
                 raw_origin = (int(col* mask_frac), int(row*mask_frac))
                 out_origin = (row/stride_row * patch_out_size, col/stride_col * patch_out_size)
