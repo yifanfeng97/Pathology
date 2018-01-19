@@ -81,32 +81,23 @@ def h5_extract_data_label_name(img_size, file_name):
     return data.reshape(-1, img_size, img_size, 3), label, name[0].split('\n')
 
 
-def get_h5_file_list(train, cfg):
-    if train:
+def get_h5_file_list(data_type, cfg):
+    if 'train' in data_type:
         file_names = glob.glob(cfg.patch_hdf5_train_file_pre + '*')
-    else:
+    elif 'val' in data_type:
         file_names = glob.glob(cfg.patch_hdf5_val_file_pre + '*')
     return file_names
 
 
-def get_all_data_label_name(cfg, train, frac=1):
+def get_all_data_label_name(cfg, data_type, frac=1):
     file_names = None
     data = None
     label = None
     name = None
 
-    file_names = get_h5_file_list(train, cfg)
+    file_names = get_h5_file_list(data_type, cfg)
     random.shuffle(file_names)
     file_names = file_names[:int(np.ceil(len(file_names)*frac))]
-
-    # def get_num(name):
-    #     return int(os.path.basename(name).split('.')[0].split('_')[-1])
-    #
-    # if flag == 0:
-    #     file_names = file_names[0::2]
-    #
-    # if flag == 1:
-    #     file_names = file_names[1::2]
 
     for file_name in file_names:
         t_data, t_label, t_name = h5_extract_data_label_name(cfg.patch_size, file_name)
@@ -121,30 +112,16 @@ def get_all_data_label_name(cfg, train, frac=1):
     return data, label, name
 
 
-class h5_dataloader(Dataset):
-    def __init__(self, train = True, frac=1, file_name=None):
-        cfg = config_fun.config()
-        self._train = train
-        self._compose = patch_preprocess_fun.get_train_val_compose()
-        if file_name is None:
-            self._data, self._label, self._name = get_all_data_label_name(cfg, train=train, frac=frac)
-        else:
-            self._data, self._label, self._name = h5_extract_data_label_name(cfg.patch_size, file_name)
-        assert self._data.shape[0] == self._label.shape[0]
-
-    def __getitem__(self, index):
-        return self._compose(self._data[index]), self._label[index]
-
-    def __len__(self):
-        return self._label.shape[0]
-
-def _random_vis_hdf5(cfg, train):
-    data, label, name = get_all_data_label_name(cfg, train)
+def _random_vis_hdf5(cfg, data_type):
+    data, label, name = get_all_data_label_name(cfg, data_type)
     save_dir_pre = cfg.vis_hdf5_folder
-    if train:
+    if 'train' in data_type:
         file_type = 'train'
-    else:
+    elif 'val' in data_type:
         file_type = 'val'
+    else:
+        print('vis hdf5 error, wrong data type!')
+        sys.exit(0)
     save_dir_pre = os.path.join(save_dir_pre, file_type)
     cfg.check_dir(save_dir_pre)
     save_dir_pos = os.path.join(save_dir_pre, 'pos')
@@ -165,9 +142,9 @@ def _random_vis_hdf5(cfg, train):
 def random_vis_hdf5():
     cfg = config_fun.config()
     print('vis train hdf5 ~')
-    _random_vis_hdf5(cfg, train=True)
+    _random_vis_hdf5(cfg, 'train')
     print('vis validation hdf5 ~')
-    _random_vis_hdf5(cfg, train=False)
+    _random_vis_hdf5(cfg, 'val')
 
 
 if __name__ == '__main__':

@@ -59,6 +59,46 @@ class VGG(nn.Module):
                 m.bias.data.zero_()
 
 
+class VGG_FCN(nn.Module):
+
+    def __init__(self, features, num_classes=1000):
+        super(VGG_FCN, self).__init__()
+        self.features = features
+        self.classifier = nn.Sequential(
+            # nn.Linear(512 * 7 * 7, 4096),
+            nn.Conv2d(512, 4096, kernel_size=7),
+            nn.ReLU(True),
+            nn.Dropout(),
+            # nn.Linear(4096, 4096),
+            nn.Conv2d(4096, 4096, kernel_size=1),
+            nn.ReLU(True),
+            nn.Dropout(),
+            # nn.Linear(4096, num_classes),
+            nn.Conv2d(4096, num_classes, kernel_size=1),
+        )
+        self._initialize_weights()
+
+    def forward(self, x):
+        x = self.features(x)
+        # x = x.view(x.size(0), -1)
+        x = self.classifier(x)
+        return x
+
+    def _initialize_weights(self):
+        for m in self.modules():
+            if isinstance(m, nn.Conv2d):
+                n = m.kernel_size[0] * m.kernel_size[1] * m.out_channels
+                m.weight.data.normal_(0, math.sqrt(2. / n))
+                if m.bias is not None:
+                    m.bias.data.zero_()
+            elif isinstance(m, nn.BatchNorm2d):
+                m.weight.data.fill_(1)
+                m.bias.data.zero_()
+            elif isinstance(m, nn.Linear):
+                m.weight.data.normal_(0, 0.01)
+                m.bias.data.zero_()
+
+
 def make_layers(cfg, batch_norm=False):
     layers = []
     in_channels = 3
@@ -173,7 +213,7 @@ def vgg19(pretrained=False, **kwargs):
     Args:
         pretrained (bool): If True, returns a model pre-trained on ImageNet
     """
-    model = VGG(make_layers(cfg['E']), **kwargs)
+    model = VGG_FCN(make_layers(cfg['E']), **kwargs)
     if pretrained:
         pretrained_dict = model_zoo.load_url(model_urls['vgg19'])
         model = model_helper.get_not_fc_para(model, pretrained_dict)
@@ -187,7 +227,8 @@ def vgg19_bn(pretrained=False, **kwargs):
     Args:
         pretrained (bool): If True, returns a model pre-trained on ImageNet
     """
-    model = VGG(make_layers(cfg['E'], batch_norm=True), **kwargs)
+    model = VGG_FCN(make_layers(cfg['E'], batch_norm=True), **kwargs)
+    # model = VGG(make_layers(cfg['E'], batch_norm=True), **kwargs)
     if pretrained:
         pretrained_dict = model_zoo.load_url(model_urls['vgg19_bn'])
         model = model_helper.get_not_fc_para(model, pretrained_dict)

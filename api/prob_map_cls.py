@@ -3,51 +3,33 @@ import numpy as np
 import extract_patch_fun
 from itertools import product
 from torch.utils.data import Dataset
-import patch_preprocess_fun
 import torch
 from tqdm import tqdm
 from torch.autograd import Variable
 from api.meter import timemeter
+import dataloader_fun
 
 
 def _np_resize(data, size):
     return np.asarray(Image.fromarray(data).resize(size))
 
 
+# is foreground
+def is_fg(patch, min_patch_size):
+    return np.count_nonzero(patch) > min_patch_size*min_patch_size*9/10
+
+
 def _get_input_list(cfg, mask, frac):
     input_list = []
     min_patch_size = int(np.ceil(cfg.patch_size/frac))
-    all_cnt = 0
-    # is foreground
-    def is_fg(patch):
-        return np.count_nonzero(patch) > min_patch_size*min_patch_size*2/3
     n_row, n_col = mask.shape
     for row, col in product(range(n_row-min_patch_size), range(n_col-min_patch_size)):
-        if is_fg(mask[row: row + min_patch_size, col: col + min_patch_size]):
+        if is_fg(mask[row: row + min_patch_size, col: col + min_patch_size], min_patch_size):
             # for PIL Image, reverse the row and col
             raw_origin = (int(np.ceil(col * frac)), int(np.ceil(row * frac)))
             out_origin = (row, col)
             input_list.append({'raw': raw_origin, 'out': out_origin})
-        all_cnt += 1
-    print('the selected area is %d of %d (%.4f)'%(len(input_list),
-                                                  all_cnt, len(input_list)*1.0/all_cnt))
     return input_list
-
-class gmDataLoader(Dataset):
-    def __init__(self, input_list, slide, patch_size):
-        # super(testDataLoader, self).__init__()
-        self._patch_size = patch_size
-        self._data = input_list
-        self._slide = slide
-        self._compose = patch_preprocess_fun.get_gm_compose()
-
-    def __getitem__(self, index):
-        img = self._slide.read_region(self._data[index]['raw'], 0,
-                                (self._patch_size, self._patch_size))
-        return self._compose(img)
-
-    def __len__(self):
-        return len(self._data)
 
 
 def _get_label_prob(data_loader, model):
@@ -69,6 +51,7 @@ def _fill_list_into_map(input_list, maps, output):
     for idx, item in enumerate(tqdm(input_list)):
         maps[item['out']] = output[idx]
     return maps
+
 
 def generate_prob_map(cfg, model, file_name):
     t = timemeter.TimeMeter()
@@ -92,7 +75,7 @@ def generate_prob_map(cfg, model, file_name):
     print('Done! %.4fs' % t.value())
     print('get %d input patch'%len(input_list))
 
-    gm_dataset = gmDataLoader(input_list, slide._img, cfg.patch_size)
+    gm_dataset = dataloader_fun.gm_cls_DataLoader(input_list, slide._img, cfg.patch_size)
 
     gm_loader = torch.utils.data.DataLoader(gm_dataset, batch_size=cfg.gm_batch_size,
                                             shuffle=False, num_workers=cfg.gm_work_num)

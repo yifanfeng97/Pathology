@@ -32,8 +32,9 @@ class config():
         self.val_normal = cfg.getint('PREPROCESS', 'val_normal')
         self.val_tumor = cfg.getint('PREPROCESS', 'val_tumor')
         self.patch_size = cfg.getint('PREPROCESS', 'patch_size')
-        self.patch_num_in_file = cfg.getint('PREPROCESS', 'patch_num_in_file')
-        self.patch_num_in_train = cfg.getint('PREPROCESS', 'patch_num_in_train')
+        self.pos_patch_num_in_file = cfg.getint('PREPROCESS', 'pos_patch_num_in_file')
+        self.neg_patch_num_in_file = cfg.getint('PREPROCESS', 'neg_patch_num_in_file')
+        # self.patch_num_in_train = cfg.getint('PREPROCESS', 'patch_num_in_train')
         self.test_frac = cfg.getfloat('PREPROCESS', 'test_frac')
         self.alpha = cfg.getfloat('PREPROCESS', 'alpha')
         self.max_frac = cfg.getfloat('PREPROCESS', 'max_frac')
@@ -74,6 +75,7 @@ class config():
         self.weight_decay = cfg.getfloat('TRAIN', 'weight_decay')
         self.max_epoch = cfg.getint('TRAIN', 'max_epoch')
         self.print_freq = cfg.getint('TRAIN', 'print_freq')
+        self.train_slide_num_each_block = cfg.getint('TRAIN', 'train_slide_num_each_block')
         ### others
         self.model = cfg.get('TRAIN', 'model')
         self.model_pretrain = cfg.getboolean('TRAIN', 'model_pretrain')
@@ -81,10 +83,12 @@ class config():
         self.gpu_id = [int(id) for id in self.gpu_id.split(', ')]
         self.resume_training = cfg.getboolean('TRAIN', 'resume_training')
         self.train_file_wise = cfg.getboolean('TRAIN', 'train_file_wise')
+        self.train_slide_wise = cfg.getboolean('TRAIN', 'train_slide_wise')
 
         # GENERATE MAP
         self.gm_foder = cfg.get('GENERATE_MAP', 'gm_foder')
         self.gm_stride = cfg.getint('GENERATE_MAP', 'gm_stride')
+        self.windows_size = cfg.getint('GENERATE_MAP', 'windows_size')
         self.gm_batch_size = cfg.getint('GENERATE_MAP', 'gm_batch_size')
         self.gm_work_num = cfg.getint('GENERATE_MAP', 'gm_work_num')
 

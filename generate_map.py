@@ -1,5 +1,6 @@
 from api import config_fun
-from api import prob_map
+from api import prob_map_fcn
+from api import prob_map_cls
 import numpy as np
 import train_helper
 import os
@@ -9,7 +10,6 @@ from PIL import Image
 cfg = config_fun.config()
 model = train_helper.get_model(cfg, load_param_from_folder=True)
 
-# model = torch.nn.DataParallel(model, device_ids=cfg.gpu_id)
 model.cuda()
 
 def norm(p):
@@ -17,10 +17,11 @@ def norm(p):
 
 f = open(cfg.test_file, 'r')
 for s in f.readlines():
+    if s.split()==[]: continue
     file_name, label = s.split('*')
     print('processing ' + file_name)
 
-    raw_img, b_map, p_map = prob_map.generate_prob_map(cfg, model, file_name)
+    raw_img, b_map, p_map = prob_map_fcn.generate_prob_map(cfg, model, file_name)
 
     save_dir_pre = os.path.join(cfg.gm_foder,
                                 os.path.basename(file_name).split('.')[0])
