@@ -1,24 +1,27 @@
 from PIL import Image
 import numpy as np
 import matplotlib.pyplot as plt
+import seaborn as sns
+import plotly.plotly as py
+import plotly.graph_objs as go
+
 
 
 # file_dir = '/media/fengyifan/16F8F177F8F15589/RJPathData/Experiments6_bk/prob_map/bk/4011_p_map_img.txt'
-file_dir = '/home/duanqi01/Documents/Testfyf/Experiments_SVS1/prob_map/3969_p_map_img.txt'
+file_dir = '/home/duanqi01/Documents/Testfyf/Experiments_SVS1/prob_map/7168_p_map_img.txt'
 
 p_map = np.loadtxt(file_dir)
 
-# plt.figure(figsize=(p_map.shape[1], p_map.shape[0]))
+sns.heatmap(p_map)
+plt.savefig('test.png')
 
-plt.imshow(p_map, cmap='jet')
-
-plt.xticks([])
-plt.yticks([])
-
-plt.axis('off')
-
-plt.savefig('test.png', bbox_inches='tight')
-# plt.show()
+# # plt.figure(figsize=(p_map.shape[1], p_map.shape[0]))
+# plt.imshow(p_map, cmap='jet')
+# plt.xticks([])
+# plt.yticks([])
+# plt.axis('off')
+# plt.savefig('test.png', bbox_inches='tight')
+# # plt.show()
 # p_map_img = Image.fromarray(p_map*255)
 # p_map_img.show()
 # p_map_img = p_map_img.convert('RGB')
