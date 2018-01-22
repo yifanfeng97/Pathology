@@ -35,7 +35,7 @@ def _get_input_list(cfg, mask, frac):
 def _get_label_prob(data_loader, model):
     output = None
     # model.cuda()
-    softmax = torch.nn.Softmax()
+    softmax = torch.nn.Softmax(dim=0)
     for i, inputs_img in enumerate(tqdm(data_loader)):
         inputs_img = Variable(inputs_img).cuda()
         preds = model(inputs_img)
