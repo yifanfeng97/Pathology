@@ -13,12 +13,10 @@ model = train_helper.get_model(cfg, load_param_from_folder=True)
 
 model.cuda()
 
-def norm(p):
-    return ((p-p.min())/(p.max()-p.min()))
 
 f = open(cfg.test_file, 'r')
 for s in f.readlines():
-    if s.split()==[]: continue
+    if s.split() == []: continue
     # file_name, label = s.split('*')
     file_name = s.split('\n')[0]
     print('processing ' + file_name)

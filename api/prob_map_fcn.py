@@ -25,8 +25,8 @@ def _get_input_list(mask, mask_frac, patch_in_size, size_raw, size_out, patch_ou
     input_list = []
     stride_row = cal_stride(patch_in_size, patch_out_size, size_raw[1], size_out[1])
     stride_col = cal_stride(patch_in_size, patch_out_size, size_raw[0], size_out[0])
-    min_stride_row = int(np.ceil(stride_row/mask_frac))
-    min_stride_col = int(np.ceil(stride_col/mask_frac))
+    min_stride_row = int(stride_row/mask_frac)
+    min_stride_col = int(stride_col/mask_frac)
     min_patch_size = int(patch_in_size/mask_frac)
 
     for row in range(0, mask.shape[0]-min_stride_row, min_stride_row):
@@ -34,13 +34,13 @@ def _get_input_list(mask, mask_frac, patch_in_size, size_raw, size_out, patch_ou
             if is_fg(mask[row: row + min_patch_size, col: col + min_patch_size], min_patch_size):
                 raw_origin = (int(col* mask_frac), int(row*mask_frac))
                 out_origin = ((row/min_stride_row) * patch_out_size, (col/min_stride_col) * patch_out_size)
+                # out_origin = (row, col)
                 input_list.append({'raw': raw_origin, 'out': out_origin})
     return input_list
 
 
 def _get_label_prob(data_loader, model):
     output = None
-    # model.cuda()
     softmax = torch.nn.Softmax(dim=1)
     for i, inputs_img in enumerate(tqdm(data_loader)):
         inputs_img = Variable(inputs_img).cuda()
@@ -56,7 +56,7 @@ def _get_label_prob(data_loader, model):
 def _fill_list_into_map(input_list, maps, output, patch_out_size):
     for idx, item in enumerate(tqdm(input_list)):
         maps[item['out'][0]: item['out'][0]+patch_out_size,
-                item['out'][1]:item['out'][1]+patch_out_size] = output[idx]
+                item['out'][1]:item['out'][1]+patch_out_size] = output[idx].transpose()
     return maps
 
 
@@ -69,7 +69,7 @@ def cal_new_len(windows_size, img_size):
 
 
 def cal_stride(windows_size, windows_out_size, img_size, img_out_size):
-    return int(np.ceil((img_size-windows_size)*1.0/(img_out_size - windows_out_size)*windows_out_size))
+    return int((img_size-windows_size)*1.0/(img_out_size - windows_out_size)*windows_out_size)
 
 
 def generate_prob_map(cfg, model, file_name):
