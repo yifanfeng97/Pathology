@@ -1,6 +1,6 @@
 from api import config_fun
-# from api import prob_map_fcn as prob_map
-from api import prob_map_cls as prob_map
+from api import prob_map_fcn as prob_map
+# from api import prob_map_cls as prob_map
 import numpy as np
 import train_helper
 import os

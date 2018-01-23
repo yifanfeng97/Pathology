@@ -17,7 +17,8 @@ def _np_resize(data, size):
 
 # is foreground
 def is_fg(patch, min_patch_size):
-    return np.count_nonzero(patch) > min_patch_size*min_patch_size*1.0/2
+    return np.count_nonzero(patch) > 0
+    # return np.count_nonzero(patch) > min_patch_size*min_patch_size*1.0/2
     # return np.count_nonzero(patch) > min_patch_size*min_patch_size*9/10
 
 
@@ -56,7 +57,7 @@ def _get_label_prob(data_loader, model):
 def _fill_list_into_map(input_list, maps, output, patch_out_size):
     for idx, item in enumerate(tqdm(input_list)):
         maps[item['out'][0]: item['out'][0]+patch_out_size,
-                item['out'][1]:item['out'][1]+patch_out_size] = output[idx].transpose()
+                item['out'][1]:item['out'][1]+patch_out_size] = output[idx]#.transpose()
     return maps
 
 

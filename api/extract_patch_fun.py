@@ -134,7 +134,8 @@ class single_img_process():
             deal(x, y - 1)
 
         mask = opening(mask, star(5))
-        mask = erosion(mask, star(3))
+        # mask = erosion(mask, star(3))
+        mask = dilation(mask, star(3))
         return mask
 
     def _merge_mask_files(self):
@@ -335,7 +336,6 @@ class single_img_process():
             img.close()
             # cnt +=1
 
-
     def _get_sampled_patch_mask(self, patches):
         lvl = self._get_level((40000, 40000)) + 1
         size = self._img.level_dimensions[lvl]
@@ -414,7 +414,8 @@ class single_img_process():
                     cnt+=1
 
             if self._patch_type == 'neg':
-                if np.count_nonzero(min_patch[H_min:H_max, W_min:W_max] == NORMAL) >= th_num:
+                # if np.count_nonzero(min_patch[H_min:H_max, W_min:W_max] == NORMAL) >= th_num:
+                if np.count_nonzero(min_patch[H_min:H_max, W_min:W_max] == NORMAL) > 0:
                     if do_bg_filter:
                         if self._is_bg(origin):
                             continue
