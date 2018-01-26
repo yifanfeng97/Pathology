@@ -17,7 +17,7 @@ def _prepare_data(cfg, data, file_type, auto_save_patch = True):
             print('find ' + coor_file_name)
             continue
 
-        print('processing img: ' + filename)
+        print('\nprocessing img: ' + filename)
         if 'tumor' in item['info']:
             patch_type = 'pos'
         else:

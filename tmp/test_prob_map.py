@@ -1,6 +1,6 @@
 from PIL import Image
 import numpy as np
-from api import head_map_fun
+from api import heat_map_fun
 import matplotlib
 
 
@@ -10,7 +10,7 @@ file_dir = '/home/duanqi01/Documents/Testfyf/Experiments_SVS1/prob_map/bk1/7070_
 
 p_map = np.loadtxt(file_dir)
 
-heat_map = head_map_fun.get_heat_map_from_prob(p_map)
+heat_map = heat_map_fun.get_heat_map_from_prob(p_map)
 heat_map.show()
 
 # # plt.figure(figsize=(p_map.shape[1], p_map.shape[0]))

@@ -17,8 +17,8 @@ def _np_resize(data, size):
 
 # is foreground
 def is_fg(patch, min_patch_size):
-    return np.count_nonzero(patch) > 0
-    # return np.count_nonzero(patch) > min_patch_size*min_patch_size*1.0/2
+    # return np.count_nonzero(patch) > 0
+    return np.count_nonzero(patch) > min_patch_size*min_patch_size*1.0/2
     # return np.count_nonzero(patch) > min_patch_size*min_patch_size*9/10
 
 
