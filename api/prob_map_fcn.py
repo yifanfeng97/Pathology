@@ -17,13 +17,15 @@ def _np_resize(data, size):
 
 # is foreground
 def is_fg(patch, min_patch_size):
-    return np.count_nonzero(patch) > min_patch_size*min_patch_size*9/10
+    # return np.count_nonzero(patch) > 0
+    return np.count_nonzero(patch) > min_patch_size*min_patch_size*1.0/2
+    # return np.count_nonzero(patch) > min_patch_size*min_patch_size*9/10
 
 
 def _get_input_list(mask, mask_frac, patch_in_size, size_raw, size_out, patch_out_size):
     input_list = []
-    stride_row = cal_stride(patch_in_size, size_raw[1], size_out[1])
-    stride_col = cal_stride(patch_in_size, size_raw[0], size_out[0])
+    stride_row = cal_stride(patch_in_size, patch_out_size, size_raw[1], size_out[1])
+    stride_col = cal_stride(patch_in_size, patch_out_size, size_raw[0], size_out[0])
     min_stride_row = int(stride_row/mask_frac)
     min_stride_col = int(stride_col/mask_frac)
     min_patch_size = int(patch_in_size/mask_frac)
@@ -32,30 +34,30 @@ def _get_input_list(mask, mask_frac, patch_in_size, size_raw, size_out, patch_ou
         for col in range(0, mask.shape[1]-min_stride_col, min_stride_col):
             if is_fg(mask[row: row + min_patch_size, col: col + min_patch_size], min_patch_size):
                 raw_origin = (int(col* mask_frac), int(row*mask_frac))
-                out_origin = (row/stride_row * patch_out_size, col/stride_col * patch_out_size)
+                out_origin = ((row/min_stride_row) * patch_out_size, (col/min_stride_col) * patch_out_size)
+                # out_origin = (row, col)
                 input_list.append({'raw': raw_origin, 'out': out_origin})
     return input_list
 
 
 def _get_label_prob(data_loader, model):
     output = None
-    # model.cuda()
-    softmax = torch.nn.Softmax()
+    softmax = torch.nn.Softmax(dim=1)
     for i, inputs_img in enumerate(tqdm(data_loader)):
         inputs_img = Variable(inputs_img).cuda()
         preds = model(inputs_img)
         preds = softmax(preds)
         if output is None:
-            output = preds.data.cpu().squeeze().numpy()
+            output = preds.data.cpu().numpy()
         else:
-            output = np.concatenate((output, preds.data.cpu().squeeze().numpy()), axis=0)
+            output = np.concatenate((output, preds.data.cpu().numpy()), axis=0)
     return output
 
 
 def _fill_list_into_map(input_list, maps, output, patch_out_size):
     for idx, item in enumerate(tqdm(input_list)):
         maps[item['out'][0]: item['out'][0]+patch_out_size,
-                item['out'][1]:item['out'][1]+patch_out_size] = output[idx]
+                item['out'][1]:item['out'][1]+patch_out_size] = output[idx]#.transpose()
     return maps
 
 
@@ -63,11 +65,12 @@ def cal_new_len(windows_size, img_size):
     if windows_size<=192 or img_size<=192:
         print('windows_size or img_size is smaller than 192')
         sys.exit(-1)
-    return int((img_size-192)/(windows_size-192))
+    # return int((img_size-192)/(windows_size-192))
+    return int((img_size/32) - 6)
 
 
-def cal_stride(windows_size, img_size, num):
-    return (img_size-windows_size)/num
+def cal_stride(windows_size, windows_out_size, img_size, img_out_size):
+    return int((img_size-windows_size)*1.0/(img_out_size - windows_out_size)*windows_out_size)
 
 
 def generate_prob_map(cfg, model, file_name):
@@ -84,7 +87,7 @@ def generate_prob_map(cfg, model, file_name):
     # calculate the gm row column and patch out size
     row = cal_new_len(cfg.windows_size, size_raw[1])
     col = cal_new_len(cfg.windows_size, size_raw[0])
-    patch_out_size = cfg.windows_size/32 -6
+    patch_out_size = cfg.windows_size/32 - 6
 
     size_out = (col, row)
 

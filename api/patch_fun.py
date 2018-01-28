@@ -17,7 +17,7 @@ def _prepare_data(cfg, data, file_type, auto_save_patch = True):
             print('find ' + coor_file_name)
             continue
 
-        print('processing img: ' + filename)
+        print('\nprocessing img: ' + filename)
         if 'tumor' in item['info']:
             patch_type = 'pos'
         else:
@@ -29,7 +29,7 @@ def _prepare_data(cfg, data, file_type, auto_save_patch = True):
         # patches.append(patch_cell)
         print('get patches from %s, pos:%d, neg:%d\n'%
               (os.path.basename(filename), len(patch['pos']), len(patch['neg'])))
-        print('save patch coor into file ', coor_file_name)
+        print('save patch coor into file ' + coor_file_name)
         np.save(coor_file_name, patch_cell)
     # return patches
 
