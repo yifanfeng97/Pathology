@@ -29,6 +29,7 @@ def _get_input_list(mask, mask_frac, patch_in_size, size_raw, size_out, patch_ou
     min_stride_row = int(stride_row/mask_frac)
     min_stride_col = int(stride_col/mask_frac)
     min_patch_size = int(patch_in_size/mask_frac)
+    cnt_all = 0
 
     for row in range(0, mask.shape[0]-min_stride_row, min_stride_row):
         for col in range(0, mask.shape[1]-min_stride_col, min_stride_col):
@@ -37,6 +38,8 @@ def _get_input_list(mask, mask_frac, patch_in_size, size_raw, size_out, patch_ou
                 out_origin = ((row/min_stride_row) * patch_out_size, (col/min_stride_col) * patch_out_size)
                 # out_origin = (row, col)
                 input_list.append({'raw': raw_origin, 'out': out_origin})
+            cnt_all += 1
+    print('input %d/%d (%.3f%%)' % (len(input_list), cnt_all, len(input_list)*1.0/cnt_all*100))
     return input_list
 
 
