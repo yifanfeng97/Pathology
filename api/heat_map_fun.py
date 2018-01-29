@@ -342,11 +342,13 @@ def get_heatmap_from_prob(p_map):
             heat_map[row, col] = jet_map_65[idx[row, col]]
     return Image.fromarray((heat_map*255).astype(np.uint8))
 
-file_names = '/media/fengyifan/16F8F177F8F15589/PathData/Experiments7/prob_map/2017-00438-1_2017-07-27 14_05_43_p_map_img.txt'
 
-p_map = np.loadtxt(file_names)
+if __name__ == '__main__':
+       file_names = '/media/fengyifan/16F8F177F8F15589/PathData/Experiments7/prob_map/2017-00438-1_2017-07-27 14_05_43_p_map_img.txt'
 
-p_map_img = Image.fromarray(p_map*255)
+       p_map = np.loadtxt(file_names)
 
-get_heatmap_from_prob(p_map).show()
-# p_map_img.show()
+       p_map_img = Image.fromarray(p_map*255)
+
+       get_heatmap_from_prob(p_map).show()
+       # p_map_img.show()
