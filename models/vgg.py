@@ -199,7 +199,8 @@ def vgg16_bn(pretrained=False, **kwargs):
     Args:
         pretrained (bool): If True, returns a model pre-trained on ImageNet
     """
-    model = VGG(make_layers(cfg['D'], batch_norm=True), **kwargs)
+    # model = VGG(make_layers(cfg['D'], batch_norm=True), **kwargs)
+    model = VGG_FCN(make_layers(cfg['D'], batch_norm=True), **kwargs)
     if pretrained:
         pretrained_dict = model_zoo.load_url(model_urls['vgg16_bn'])
         model = model_helper.get_not_fc_para(model, pretrained_dict)
