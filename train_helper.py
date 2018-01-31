@@ -107,25 +107,43 @@ def get_slide_dataloader(block, cfg):
     return dataLoader
 
 
+def get_slide_idx_coor_label(slide, idx, coor, patch_type, cfg):
+    coor_ans = []
+    if isinstance(coor[0], tuple):
+        if patch_type == 'pos':
+            label = 1
+        else:
+            label = 0
+        coor_ans = [(idx, c, label) for c in coor]
+    elif isinstance(coor[0], list):
+        if patch_type == 'pos':
+            shift = cfg.num_neg_classes
+        else:
+            shift = 0
+        for label, co in enumerate(coor):
+            for c in co:
+                coor_ans.append((idx, c, shift + label))
+    return coor_ans
+
+
 def get_block(slides, cfg):
     file_names = []
     coors = []
     info = []
     for idx, slide in enumerate(slides):
-        if slide['info'].endswith('tumor'):
-            label = 1
-        elif slide['info'].endswith('normal'):
-            label = 0
-        else:
-            print('get block label error')
-            sys.exit(0)
         file_names.append(slide['data'][0])
         info.append(slide['info'])
         coor_dir = os.path.join(cfg.patch_coor_folder,
                 'coor_'+os.path.basename(slide['data'][0].split('.')[0]+'.npy'))
         coor = patch_fun.get_coor(coor_dir)['patch']
-        coor = coor['pos'] + coor['neg']
-        coor = [(idx, c, label) for c in coor]
+
+        if slide['info'].endswith('tumor'):
+            coor = get_slide_idx_coor_label(slide, idx, coor['pos'], 'pos', cfg)
+        elif slide['info'].endswith('normal'):
+            coor = get_slide_idx_coor_label(slide, idx, coor['neg'], 'neg', cfg)
+        else:
+            print('get block label error')
+            sys.exit(0)
         coors.extend(coor)
     block = {'file_name':file_names,
              'coor': coors,
