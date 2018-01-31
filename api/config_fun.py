@@ -68,6 +68,8 @@ class config():
         self.train_patch_frac = cfg.getfloat('TRAIN', 'train_patch_frac')
         self.val_patch_frac = cfg.getfloat('TRAIN', 'val_patch_frac')
         self.num_classes = cfg.getint('TRAIN', 'num_classes')
+        self.num_neg_classes = cfg.getint('TRAIN', 'num_neg_classes')
+        self.num_pos_classes = self.num_classes - self.num_neg_classes
         self.workers = cfg.getint('TRAIN', 'workers')
         self.batch_size = cfg.getint('TRAIN', 'batch_size')
         self.lr = cfg.getfloat('TRAIN', 'lr')

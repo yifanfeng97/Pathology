@@ -8,17 +8,18 @@ from skimage.morphology import dilation, star, opening, erosion
 from skimage.filters import threshold_otsu
 from itertools import product
 import os
+import sys
 
 BACKGROUND = 0
 SELECTED = 1
-NORMAL = 2
-TUMOR = 3
-SAMPLED = 4
+SAMPLED = 2
+# NORMAL = 3
+# TUMOR = 4
 
 SELECTED_COLOR = [0, 0, 255] # Blue
 NORMAL_COLOR = [0, 255, 0] # Green
 TUMOR_COLOR = [255, 0, 0] # Red
-SAMPLED_COLOR = []
+# SAMPLED_COLOR = []
 
 
 class single_img_process():
@@ -29,6 +30,9 @@ class single_img_process():
         self._auto_save_patch = auto_save_patch
         self._file_type = file_type
         self._patch_type = patch_type
+
+        self._neg_start_idx = 3
+        self._pos_start_idx = self._neg_start_idx + self._cfg.num_neg_classes
 
         self._img = slide_fun.AllSlide(self._file_name)
         self._max_mask = None
@@ -79,8 +83,8 @@ class single_img_process():
         img_np = np.asarray(img)
         img_np_g = img_np[:, :, 1]
         shape = img_np_g.shape
-        mask = np.ones(shape).astype(np.uint8)
-        searched = np.zeros((shape)).astype(np.uint8)
+        mask = np.ones(shape).astype(np.uint8) * SELECTED
+        searched = np.zeros((shape)).astype(np.bool)
         coor = []
         init_val = 0
 
@@ -96,17 +100,17 @@ class single_img_process():
             for idx in range(shape[0]):
                 # L
                 coor.append({'x': idx, 'y': 0})
-                searched[idx, 0] = 1
+                searched[idx, 0] = True
                 # R
                 coor.append({'x': idx, 'y': shape[1]-1})
-                searched[idx, shape[1]-1] = 1
+                searched[idx, shape[1]-1] = True
             for idx in range(shape[1]):
                 # U
                 coor.append({'x': 0, 'y': idx})
-                searched[0, idx] = 1
+                searched[0, idx] = True
                 # D
                 coor.append({'x': shape[0]-1, 'y': idx})
-                searched[shape[0]-1, idx] = 1
+                searched[shape[0]-1, idx] = True
             return val
 
         def isPixel(x, y):
@@ -115,8 +119,8 @@ class single_img_process():
         def deal(x, y):
             if isPixel(x, y) and not searched[x, y] and inRange(img_np_g[x, y]):
                 coor.append({'x': x, 'y': y})
-                searched[x, y] = 1
-                mask[x, y] = 0
+                searched[x, y] = True
+                mask[x, y] = BACKGROUND
 
         init_val = addSeed_initVal()
         # print('init val: %d' % init_val)
@@ -140,7 +144,7 @@ class single_img_process():
 
     def _merge_mask_files(self):
         selected_mask = np.zeros((self._max_mask_size[1], self._max_mask_size[0]), np.uint8)
-        tumor_mask = np.zeros((self._max_mask_size[1], self._max_mask_size[0]), np.uint8)
+        anno_mask = np.zeros((self._max_mask_size[1], self._max_mask_size[0]), np.uint8)
         for mask_file in self._mask_files:
             anno = slide_fun.get_mask_info(os.path.basename(mask_file.split('.')[0]))
             level = int(anno[1])
@@ -155,7 +159,7 @@ class single_img_process():
 
             new_origin = origin
             new_size = size
-            factor = 1
+            # factor = 1
             new_mask = Image.fromarray(mask_data)
 
             anno_level_size = self._img.level_dimensions[level]
@@ -172,9 +176,13 @@ class single_img_process():
             selected_mask[new_origin[1]: new_size[1] + new_origin[1],
                             new_origin[0]: new_size[0] + new_origin[0]] = SELECTED
             new_mask = np.asarray(new_mask)
-            tumor_mask[new_origin[1]: new_size[1] + new_origin[1],
-                        new_origin[0]: new_size[0] + new_origin[0]] = new_mask
-        return selected_mask, tumor_mask
+            if self._patch_type == 'pos':
+                new_mask = new_mask[new_mask != 0] - 1 + self._pos_start_idx
+            elif self._patch_type == 'neg':
+                new_mask = new_mask[new_mask != 0] - 1 + self._neg_start_idx
+            anno_mask[new_origin[1]: new_size[1] + new_origin[1],
+                    new_origin[0]: new_size[0] + new_origin[0]] = new_mask
+        return selected_mask, anno_mask
 
     def _generate_img_bg_mask(self):
         self._max_mask_level = self._get_level(self._max_mask_size)
@@ -184,8 +192,9 @@ class single_img_process():
         th_img = th_img.resize(self._max_mask_size)
         # th_mask = self._threshold_downsample_level(th_img)
         th_mask = self._seg_dfs(th_img)
+        th_img.close()
 
-        return th_img, th_mask
+        return th_mask
 
     def _generate_mask(self):
 
@@ -196,8 +205,7 @@ class single_img_process():
                                int(np.ceil(self._img.level_dimensions[0][1] / self._cfg.min_frac)))
         self._min_mask_level = self._get_level(self._min_mask_size)
 
-        th_img, th_mask = self._generate_img_bg_mask()
-        th_img.close()
+        th_mask = self._generate_img_bg_mask()
 
         # Image.fromarray(th_mask * 255).show()
         # th_img.save(os.path.join(self._cfg.vis_ov_mask_folder, os.path.basename(
@@ -206,14 +214,15 @@ class single_img_process():
         assert (self._max_mask_size[1], self._max_mask_size[0]) == th_mask.shape
 
         if self._mask_files is not None:
-            selected_mask, tumor_mask = self._merge_mask_files()
+            selected_mask, anno_mask = self._merge_mask_files()
             normal_and = np.logical_and(th_mask, selected_mask)
 
             self._max_mask[selected_mask !=0] = SELECTED
-            self._max_mask[normal_and != 0] = NORMAL
-            self._max_mask[tumor_mask != 0] = TUMOR
+            # self._max_mask[normal_and != 0] = NORMAL
+
+            self._max_mask[anno_mask != 0] = anno_mask[anno_mask!=0]
         else:
-            self._max_mask[th_mask != 0] = NORMAL
+            self._max_mask[th_mask != 0] = self._neg_start_idx
 
         self._max_mask = Image.fromarray(self._max_mask)
         self._min_mask = self._max_mask.resize(self._min_mask_size)
@@ -251,11 +260,16 @@ class single_img_process():
         img_np = np.asarray(img)
         assert (img.size[1], img.size[0]) == mask.shape
         img_mask = img_np.copy()
-        if (mask == TUMOR).any():
-            img_mask[mask == TUMOR] = self._cfg.alpha * img_np[mask == TUMOR] + \
+
+        mask_pos_idx = np.logical_and(mask >= self._pos_start_idx, mask < self._cfg.num_pos_classes)
+        mask_neg_idx = np.logical_and(mask >= self._neg_start_idx, mask < self._cfg.num_neg_classes)
+        # pos
+        if mask_pos_idx.any():
+            img_mask[mask_pos_idx] = self._cfg.alpha * img_np[mask_pos_idx] + \
                                       (1 - self._cfg.alpha) * np.array(TUMOR_COLOR)
-        if (mask == NORMAL).any():
-            img_mask[mask == NORMAL] = self._cfg.alpha * img_np[mask == NORMAL] + \
+        # neg
+        if mask_neg_idx.any():
+            img_mask[mask_neg_idx] = self._cfg.alpha * img_np[mask_neg_idx] + \
                                        (1 - self._cfg.alpha) * np.array(NORMAL_COLOR)
         if (mask == SELECTED).any():
             img_mask[mask == SELECTED] = self._cfg.alpha * img_np[mask == SELECTED] + \
@@ -264,10 +278,14 @@ class single_img_process():
             if (mask == SAMPLED).any():
                 img_mask[mask == SAMPLED] = self._cfg.alpha * img_np[mask == SAMPLED] + \
                                              (1 - self._cfg.alpha) * np.array(TUMOR_COLOR)
-        else:
+        elif self._patch_type == 'neg':
             if (mask == SAMPLED).any():
                 img_mask[mask == SAMPLED] = self._cfg.alpha * img_np[mask == SAMPLED] + \
                                             (1 - self._cfg.alpha) * np.array(NORMAL_COLOR)
+        else:
+            print('patch type error!')
+            sys.exit(-1)
+
         return Image.fromarray(img_mask)
 
     def _is_bg(self, origin):
@@ -336,16 +354,25 @@ class single_img_process():
             img.close()
             # cnt +=1
 
-    def _get_sampled_patch_mask(self, patches):
+    def _get_sampled_patch_mask(self, patches_all):
         lvl = self._get_level((40000, 40000)) + 1
         size = self._img.level_dimensions[lvl]
         sampled_mask = np.zeros((size[1], size[0]), np.uint8)
         frac = size[0]*1.0/self._img.level_dimensions[0][0]
         min_patch_size = int(self._cfg.patch_size*frac)
+        patches = []
         if self._patch_type == 'pos':
-            patches = patches['pos']
+            if isinstance(patches_all['pos'][0], list):
+                patches = patches_all['pos']
+            else:
+                for p in patches_all['pos']:
+                    patches.extend(p)
         else:
-            patches = patches['neg']
+            if isinstance(patches_all['pos'][0], list):
+                patches = patches_all['neg']
+            else:
+                for p in patches_all['neg']:
+                    patches.extend(p)
         for coor in patches:
             min_coor = (int(coor[0]*frac), int(coor[1]*frac))
             sampled_mask[min_coor[1]: min_coor[1]+min_patch_size,
@@ -370,6 +397,10 @@ class single_img_process():
     def _get_train_patch(self):
         do_bg_filter = False
         patches = {'pos': [], 'neg': []}
+        for i in range(self._cfg.num_pos_classes):
+            patches['pos'].append([])
+        for i in range(self._cfg.num_neg_classes):
+            patches['neg'].append([])
         assert self._min_mask_size[1], self._min_mask_size[0] == self._min_mask.shape
         num_row, num_col = self._min_mask.shape
         num_row = num_row - self._min_patch_size
@@ -405,23 +436,25 @@ class single_img_process():
             # half of the center
             th_num = int(np.ceil((H*3/4 * W*3/4) ))
             if self._patch_type == 'pos':
-                if np.count_nonzero(min_patch[H_min:H_max, W_min:W_max] == TUMOR) >= th_num:
-                    if do_bg_filter:
-                        if self._is_bg(origin):
-                            continue
-                    patches['pos'].append(origin)
-                    self._save_random_patch(origin, min_patch)
-                    cnt+=1
+                for idx in range(self._cfg.num_pos_classes):
+                    if np.count_nonzero(min_patch[H_min:H_max, W_min:W_max] == self._pos_start_idx+idx) >= th_num:
+                        if do_bg_filter:
+                            if self._is_bg(origin):
+                                continue
+                        patches['pos'][idx].append(origin)
+                        self._save_random_patch(origin, min_patch)
+                        cnt+=1
 
             if self._patch_type == 'neg':
-                # if np.count_nonzero(min_patch[H_min:H_max, W_min:W_max] == NORMAL) >= th_num:
-                if np.count_nonzero(min_patch[H_min:H_max, W_min:W_max] == NORMAL) > 0:
-                    if do_bg_filter:
-                        if self._is_bg(origin):
-                            continue
-                    patches['neg'].append(origin)
-                    self._save_random_patch(origin, min_patch)
-                    cnt+=1
+                for idx in range(self._cfg.num_neg_classes):
+                    # if np.count_nonzero(min_patch[H_min:H_max, W_min:W_max] == NORMAL) >= th_num:
+                    if np.count_nonzero(min_patch[H_min:H_max, W_min:W_max] == self._neg_start_idx+idx) > 0:
+                        # if do_bg_filter:
+                        #     if self._is_bg(origin):
+                        #         continue
+                        patches['neg'][idx].append(origin)
+                        self._save_random_patch(origin, min_patch)
+                        cnt+=1
         # visualizaion
         if self._cfg.vis_ov_mask:
             raw_img = self._img.read_region((0, 0), self._min_mask_level,
