@@ -176,10 +176,11 @@ class single_img_process():
             selected_mask[new_origin[1]: new_size[1] + new_origin[1],
                             new_origin[0]: new_size[0] + new_origin[0]] = SELECTED
             new_mask = np.asarray(new_mask)
+            new_mask.setflags(write=True)
             if self._patch_type == 'pos':
-                new_mask = new_mask[new_mask != 0] - 1 + self._pos_start_idx
+                new_mask[new_mask != 0] = new_mask[new_mask != 0] - 1 + self._pos_start_idx
             elif self._patch_type == 'neg':
-                new_mask = new_mask[new_mask != 0] - 1 + self._neg_start_idx
+                new_mask[new_mask != 0] = new_mask[new_mask != 0] - 1 + self._neg_start_idx
             anno_mask[new_origin[1]: new_size[1] + new_origin[1],
                     new_origin[0]: new_size[0] + new_origin[0]] = new_mask
         return selected_mask, anno_mask
@@ -215,7 +216,7 @@ class single_img_process():
 
         if self._mask_files is not None:
             selected_mask, anno_mask = self._merge_mask_files()
-            normal_and = np.logical_and(th_mask, selected_mask)
+            # normal_and = np.logical_and(th_mask, selected_mask)
 
             self._max_mask[selected_mask !=0] = SELECTED
             # self._max_mask[normal_and != 0] = NORMAL
@@ -261,8 +262,8 @@ class single_img_process():
         assert (img.size[1], img.size[0]) == mask.shape
         img_mask = img_np.copy()
 
-        mask_pos_idx = np.logical_and(mask >= self._pos_start_idx, mask < self._cfg.num_pos_classes)
-        mask_neg_idx = np.logical_and(mask >= self._neg_start_idx, mask < self._cfg.num_neg_classes)
+        mask_pos_idx = np.logical_and(mask >= self._pos_start_idx, mask < self._pos_start_idx + self._cfg.num_pos_classes)
+        mask_neg_idx = np.logical_and(mask >= self._neg_start_idx, mask < self._neg_start_idx + self._cfg.num_neg_classes)
         # pos
         if mask_pos_idx.any():
             img_mask[mask_pos_idx] = self._cfg.alpha * img_np[mask_pos_idx] + \
@@ -363,16 +364,16 @@ class single_img_process():
         patches = []
         if self._patch_type == 'pos':
             if isinstance(patches_all['pos'][0], list):
-                patches = patches_all['pos']
-            else:
                 for p in patches_all['pos']:
                     patches.extend(p)
+            else:
+                patches = patches_all['pos']
         else:
             if isinstance(patches_all['pos'][0], list):
-                patches = patches_all['neg']
-            else:
                 for p in patches_all['neg']:
                     patches.extend(p)
+            else:
+                patches = patches_all['neg']
         for coor in patches:
             min_coor = (int(coor[0]*frac), int(coor[1]*frac))
             sampled_mask[min_coor[1]: min_coor[1]+min_patch_size,
@@ -444,6 +445,7 @@ class single_img_process():
                         patches['pos'][idx].append(origin)
                         self._save_random_patch(origin, min_patch)
                         cnt+=1
+                        break
 
             if self._patch_type == 'neg':
                 for idx in range(self._cfg.num_neg_classes):
@@ -455,6 +457,7 @@ class single_img_process():
                         patches['neg'][idx].append(origin)
                         self._save_random_patch(origin, min_patch)
                         cnt+=1
+                        break
         # visualizaion
         if self._cfg.vis_ov_mask:
             raw_img = self._img.read_region((0, 0), self._min_mask_level,

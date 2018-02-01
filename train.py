@@ -97,7 +97,7 @@ def train(train_loader, model, criterion, optimizer, epoch, cfg):
           'top1:{1}\t'.format(epoch, prec.value(1)))
 
 
-def validate(val_loader, model, criterion, epoch, cfg):
+def validate(val_loader, model, criterion, epoch, confusion_mat, cfg):
     """
     validation for one epoch on the validation set
     """
@@ -105,6 +105,8 @@ def validate(val_loader, model, criterion, epoch, cfg):
     data_time = meter.timemeter.TimeMeter()
     losses = meter.averagevaluemeter.AverageValueMeter()
     prec = meter.classerrormeter.ClassErrorMeter(topk=[1], accuracy=True)
+    if confusion_mat is None:
+        confusion_mat = meter.confusionmeter.ConfusionMeter(cfg.num_classes, normalized=True)
 
     # evaluate mode
     model.eval()
@@ -130,6 +132,7 @@ def validate(val_loader, model, criterion, epoch, cfg):
 
         prec.add(preds.data, gt_labels.data)
         losses.add(loss.data[0], preds.size(0))  # batchsize
+        confusion_mat.add(preds.data, gt_labels.data)
 
         if i % cfg.print_freq == 0:
             print('Epoch: [{0}][{1}/{2}]\t'
@@ -157,8 +160,10 @@ def validate(val_loader, model, criterion, epoch, cfg):
 
     print('mean class accuracy at epoch {0}: \t'
           'top1:{1}\t'.format(epoch, prec.value(1)))
+    print('confusion matrix:')
+    print(confusion_mat.value())
 
-    return prec.value(1)
+    return prec.value(1), confusion_mat.value()
 
 
 def main():
@@ -168,16 +173,16 @@ def main():
     # only used when we resume training from some checkpoint model
     resume_epoch = 0
 
-    if not cfg.resume_training:
-        model = train_helper.get_model(cfg, pretrained=cfg.model_pretrain)
+    if cfg.resume_training and os.path.exists(cfg.init_model_file):
+        model = train_helper.get_model(cfg, load_param_from_ours=True)
     else:
-        model = train_helper.get_model(cfg, load_param_from_folder=True)
+        model = train_helper.get_model(cfg, pretrained=cfg.model_pretrain)
 
     print('model: ')
     print(model)
 
     # multiple gpu
-    model.cuda()
+    # model.cuda()
 
     # optimizer
     optimizer = optim.SGD(model.parameters(), cfg.lr,
@@ -185,18 +190,20 @@ def main():
                           weight_decay=cfg.weight_decay)
 
     # if we load model from pretrained, we need the optim state here
-    if cfg.resume_training:
-        print('loading optim model from {0}'.format(cfg.optim_state_file))
+    if cfg.resume_training and os.path.exists(cfg.optim_state_file):
+        print('loading optim epoch prec from {0}'.format(cfg.optim_state_file))
         optim_state = torch.load(cfg.optim_state_file)
 
-        resume_epoch = optim_state['epoch']
+        resume_epoch = optim_state['epoch'] + 1
         best_prec1 = optim_state['best_prec1']
+        best_confusion_mat = optim_state['best_confusion_matrix']
         optimizer.load_state_dict(optim_state['optim_state_best'])
+        del optim_state
 
     criterion = nn.CrossEntropyLoss()
 
     print('shift model and criterion to GPU .. ')
-    model = model.cuda()
+    # model = model.cuda()
     # define loss function (criterion) and pptimizer
     criterion = criterion.cuda()
 
@@ -209,21 +216,24 @@ def main():
     for epoch in range(resume_epoch, cfg.max_epoch):
 
         if cfg.train_slide_wise:
-            train_helper.train_slide_wise(train, model, criterion, optimizer, epoch, cfg)
-            prec1 = train_helper.validate_slide_wise(validate, model, criterion, epoch, cfg)
+            # train_helper.train_slide_wise(train, model, criterion, optimizer, epoch, cfg)
+            prec1, confusion_mat = train_helper.validate_slide_wise(validate, model, criterion, epoch, cfg)
         elif cfg.train_file_wise:
             train_helper.train_file_wise(train, model, criterion, optimizer, epoch, cfg)
-            prec1 = train_helper.validate_file_wise(validate, model, criterion, epoch, cfg)
+            prec1, confusion_mat = train_helper.validate_file_wise(validate, model, criterion, epoch, cfg)
         else:
             train(train_loader, model, criterion, optimizer, epoch, cfg)
-            prec1 = validate(val_loader, model, criterion, epoch, cfg)
+            prec1, confusion_mat = validate(val_loader, model, criterion, epoch, cfg)
 
         if best_prec1 < prec1:
             # save checkpoints
             best_prec1 = prec1
-            train_helper.save_model_and_optim(cfg, model, optimizer, epoch, best_prec1)
+            best_confusion_mat = confusion_mat
+            train_helper.save_model_and_optim(cfg, model, optimizer, epoch, best_prec1, best_confusion_mat)
 
         print('best accuracy: ', best_prec1)
+        print('best confusion matrix:')
+        print(best_confusion_mat)
 
 
 if __name__ == '__main__':

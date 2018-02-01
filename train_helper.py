@@ -11,9 +11,9 @@ import os
 from api import dataloader_fun
 
 
-def get_model(cfg, pretrained=True, load_param_from_folder=False):
+def get_model(cfg, pretrained=True, load_param_from_ours=False):
 
-    if load_param_from_folder:
+    if load_param_from_ours:
         pretrained = False
 
     model = None
@@ -41,11 +41,12 @@ def get_model(cfg, pretrained=True, load_param_from_folder=False):
         print('not support :' + cfg.model)
         sys.exit(-1)
 
-    if load_param_from_folder:
+    if load_param_from_ours:
         print('loading pretrained model from {0}'.format(cfg.init_model_file))
         checkpoint = torch.load(cfg.init_model_file)
         model.load_state_dict(checkpoint['model_param'])
 
+    model.cuda()
     print('shift model to parallel!')
     model = torch.nn.DataParallel(model, device_ids=cfg.gpu_id)
     return model
@@ -67,7 +68,7 @@ def clip_gradient(optimizer, grad_clip):
             param.grad.data.clamp_(-grad_clip, grad_clip)
 
 
-def save_model_and_optim(cfg, model, optimizer, epoch, best_prec1):
+def save_model_and_optim(cfg, model, optimizer, epoch, best_prec1, confusion_mat):
     path_checkpoint = os.path.join(cfg.checkpoint_folder, 'model_param.pth')
     # path_checkpoint = '{0}/{1}/model_param.pth'.format(cfg.checkpoint_folder, epoch)
     checkpoint = {}
@@ -78,7 +79,8 @@ def save_model_and_optim(cfg, model, optimizer, epoch, best_prec1):
     else:
         print('model save type error')
         sys.exit()
-    checkpoint['model_param'] = model_save.state_dict()
+    checkpoint['model_param'] = model_save.cpu().state_dict()
+    model_save.cuda()
 
     save_checkpoint(checkpoint, path_checkpoint)
 
@@ -89,6 +91,7 @@ def save_model_and_optim(cfg, model, optimizer, epoch, best_prec1):
     optim_state['epoch'] = epoch  # because epoch starts from 0
     optim_state['best_prec1'] = best_prec1
     optim_state['optim_state_best'] = optimizer.state_dict()
+    optim_state['best_confusion_matrix'] = confusion_mat
     save_checkpoint(optim_state, path_optim_state)
     # problem, should we store latest optim state or model, currently, we donot
 
@@ -107,22 +110,22 @@ def get_slide_dataloader(block, cfg):
     return dataLoader
 
 
-def get_slide_idx_coor_label(slide, idx, coor, patch_type, cfg):
+def get_slide_idx_coor_label(idx, coor, patch_type, cfg):
     coor_ans = []
-    if isinstance(coor[0], tuple):
-        if patch_type == 'pos':
-            label = 1
-        else:
-            label = 0
-        coor_ans = [(idx, c, label) for c in coor]
-    elif isinstance(coor[0], list):
-        if patch_type == 'pos':
-            shift = cfg.num_neg_classes
-        else:
-            shift = 0
-        for label, co in enumerate(coor):
-            for c in co:
-                coor_ans.append((idx, c, shift + label))
+    # if isinstance(coor[0], tuple):
+    #     if patch_type == 'pos':
+    #         label = 1
+    #     else:
+    #         label = 0
+    #     coor_ans = [(idx, c, label) for c in coor]
+    # elif isinstance(coor[0], list):
+    if patch_type == 'pos':
+        shift = cfg.num_neg_classes
+    else:
+        shift = 0
+    for label, co in enumerate(coor):
+        for c in co:
+            coor_ans.append((idx, c, shift + label))
     return coor_ans
 
 
@@ -138,9 +141,9 @@ def get_block(slides, cfg):
         coor = patch_fun.get_coor(coor_dir)['patch']
 
         if slide['info'].endswith('tumor'):
-            coor = get_slide_idx_coor_label(slide, idx, coor['pos'], 'pos', cfg)
+            coor = get_slide_idx_coor_label(idx, coor['pos'], 'pos', cfg)
         elif slide['info'].endswith('normal'):
-            coor = get_slide_idx_coor_label(slide, idx, coor['neg'], 'neg', cfg)
+            coor = get_slide_idx_coor_label(idx, coor['neg'], 'neg', cfg)
         else:
             print('get block label error')
             sys.exit(0)
@@ -179,13 +182,15 @@ def validate_slide_wise(validate, model, criterion, epoch, cfg):
     prec1_sum = 0
     blocks = get_blocks('val', cfg)
     random.shuffle(blocks)
+    confusion_mat = None
     for idx, block in enumerate(blocks):
         print('[%d/%d] validation data from file:' % (idx + 1, len(blocks)))
         for f in block['file_name']:
             print(f)
         dataloader = get_slide_dataloader(block, cfg)
-        prec1_sum += validate(dataloader, model, criterion, epoch, cfg)
-    return prec1_sum/len(blocks)
+        prec1, confusion_mat = validate(dataloader, model, criterion, epoch, confusion_mat, cfg)
+        prec1_sum = prec1_sum + prec1
+    return prec1_sum/len(blocks), confusion_mat
 
 
 def train_file_wise(train, model, criterion, optimizer, epoch, cfg):

@@ -27,8 +27,13 @@ def _prepare_data(cfg, data, file_type, auto_save_patch = True):
                         'info': item['info'],
                         'patch': patch}
         # patches.append(patch_cell)
-        print('get patches from %s, pos:%d, neg:%d\n'%
-              (os.path.basename(filename), len(patch['pos']), len(patch['neg'])))
+        # print('get patches from %s, pos:%d, neg:%d\n'%
+        #       (os.path.basename(filename), len(patch['pos']), len(patch['neg'])))
+        print('get patches from %s' % os.path.basename(filename))
+        for idx, p in enumerate(patch['pos']):
+            print('pos %d: %d' % (idx, len(p)))
+        for idx, p in enumerate(patch['neg']):
+            print('neg %d: %d' % (idx, len(p)))
         print('save patch coor into file ' + coor_file_name)
         np.save(coor_file_name, patch_cell)
     # return patches
@@ -40,7 +45,7 @@ def get_coor(file_name):
 
 def get_coors(cfg, file_type):
     patches = []
-    file_names = glob.glob(os.path.join(cfg.patch_coor_folder, '*'))
+    file_names = glob.glob(os.path.join(cfg.patch_coor_folder, 'coor_*'))
     for file_name in file_names:
         coor = get_coor(file_name)
         if coor['info'].startswith(file_type):
