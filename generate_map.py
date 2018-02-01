@@ -14,7 +14,7 @@ from PIL import Image
 
 cfg = config_fun.config()
 # torch.cuda.set_device(0)
-model = train_helper.get_model(cfg, load_param_from_folder=True)
+model = train_helper.get_model(cfg, load_param_from_ours=True)
 
 # model.cuda()
 model.eval()
